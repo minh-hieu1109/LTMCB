@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "15447035979",
+    "project_id": "logingameuser-702a9",
+    "storage_bucket": "logingameuser-702a9.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:15447035979:android:761dceb30af209e806fdce",
+        "android_client_info": {
+          "package_name": "com.company.applogin"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBjsaj2eolHhpaA9MpPLVyY96Cr97tE6Rg"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
