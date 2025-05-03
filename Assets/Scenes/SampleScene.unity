@@ -6140,13 +6140,53 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 0}
     m_Modifications:
+    - target: {fileID: 233314447533969526, guid: 7190027f282eb54438d71afdeaaae4df, type: 3}
+      propertyPath: m_SizeDelta.x
+      value: 400
+      objectReference: {fileID: 0}
+    - target: {fileID: 233314447533969526, guid: 7190027f282eb54438d71afdeaaae4df, type: 3}
+      propertyPath: m_AnchoredPosition.y
+      value: -390
+      objectReference: {fileID: 0}
+    - target: {fileID: 1553377214640356033, guid: 7190027f282eb54438d71afdeaaae4df, type: 3}
+      propertyPath: m_IsActive
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 2231207735555072624, guid: 7190027f282eb54438d71afdeaaae4df, type: 3}
+      propertyPath: m_CullTransparentMesh
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 2369868418860281308, guid: 7190027f282eb54438d71afdeaaae4df, type: 3}
       propertyPath: m_text
       value: 
       objectReference: {fileID: 0}
+    - target: {fileID: 2369868418860281308, guid: 7190027f282eb54438d71afdeaaae4df, type: 3}
+      propertyPath: m_fontSize
+      value: 25
+      objectReference: {fileID: 0}
+    - target: {fileID: 2369868418860281308, guid: 7190027f282eb54438d71afdeaaae4df, type: 3}
+      propertyPath: m_fontSizeBase
+      value: 25
+      objectReference: {fileID: 0}
     - target: {fileID: 4115138814100334517, guid: 7190027f282eb54438d71afdeaaae4df, type: 3}
       propertyPath: sceneViewId
       value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 4297858249195879367, guid: 7190027f282eb54438d71afdeaaae4df, type: 3}
+      propertyPath: m_Enabled
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 4747500335363541726, guid: 7190027f282eb54438d71afdeaaae4df, type: 3}
+      propertyPath: m_IgnoreReversedGraphics
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5852771327884706629, guid: 7190027f282eb54438d71afdeaaae4df, type: 3}
+      propertyPath: m_Enabled
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 6288754936126653297, guid: 7190027f282eb54438d71afdeaaae4df, type: 3}
+      propertyPath: m_Text
+      value: 
       objectReference: {fileID: 0}
     - target: {fileID: 6435266586836201733, guid: 7190027f282eb54438d71afdeaaae4df, type: 3}
       propertyPath: m_Pivot.x
@@ -6230,7 +6270,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 7249393369469494581, guid: 7190027f282eb54438d71afdeaaae4df, type: 3}
       propertyPath: m_SizeDelta.x
-      value: 650
+      value: 400
+      objectReference: {fileID: 0}
+    - target: {fileID: 7249393369469494581, guid: 7190027f282eb54438d71afdeaaae4df, type: 3}
+      propertyPath: m_SizeDelta.y
+      value: 400
       objectReference: {fileID: 0}
     - target: {fileID: 7896278531734820531, guid: 7190027f282eb54438d71afdeaaae4df, type: 3}
       propertyPath: m_Name
@@ -6238,7 +6282,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 7896278531734820531, guid: 7190027f282eb54438d71afdeaaae4df, type: 3}
       propertyPath: m_IsActive
-      value: 0
+      value: 1
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []

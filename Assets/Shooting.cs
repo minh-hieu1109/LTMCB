@@ -10,7 +10,7 @@ public class TankShooting : MonoBehaviourPun
     {
         if (!photonView.IsMine) return;
 
-        if (Input.GetMouseButtonDown(0)) // Click chuột trái
+        if (Input.GetMouseButtonDown(0) || Input.GetKeyDown(KeyCode.Space)) // Click chuột trái
         {
             Fire();
         }
