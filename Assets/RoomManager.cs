@@ -8,13 +8,13 @@ public class RoomManager : MonoBehaviourPunCallbacks
     
     [Header("Player")]
     public GameObject player;
-    public Transform spawnPoint;
+    public Transform[] spawnPoints;
 
     [Header("UI")]
     public GameObject roomCam;
     public GameObject nameUI;
     public GameObject connectingUI;
-    public GameObject selectUI; // panel chọn server
+    public GameObject selectUI; 
     
     private string nickname = "unnamed";
     [HideInInspector]
@@ -55,7 +55,6 @@ public class RoomManager : MonoBehaviourPunCallbacks
         selectUI.SetActive(true);
     }
 
-    // Hàm này nên được gọi trong scene chơi (sau khi JoinOrCreateRoom và LoadLevel xong)
     public void SpawnPlayer()
     {
         StartCoroutine(RespawnCoroutine());
@@ -67,9 +66,12 @@ public class RoomManager : MonoBehaviourPunCallbacks
 
         if (PhotonNetwork.LocalPlayer != null)
         {
+            int randomIndex = Random.Range(0, spawnPoints.Length);
+            Transform spawnPoint = spawnPoints[randomIndex];
             GameObject _player = PhotonNetwork.Instantiate(player.name, spawnPoint.position, Quaternion.identity);
             _player.GetComponent<PhotonView>().RPC("SetNickname", RpcTarget.AllBuffered, nickname);
             PhotonNetwork.LocalPlayer.NickName = nickname;
+            _player.GetComponent<Health>().SetInvincible(3f);
         }
     }
 

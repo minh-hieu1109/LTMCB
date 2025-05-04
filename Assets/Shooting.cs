@@ -19,5 +19,11 @@ public class TankShooting : MonoBehaviourPun
     void Fire()
     {
         PhotonNetwork.Instantiate(bulletPrefab.name, firePoint.position, firePoint.rotation);
+
+        // Mất bất tử khi bắn
+        if (photonView.IsMine)
+        {
+            GetComponent<Health>().CancelInvincible();
+        }
     }
 }

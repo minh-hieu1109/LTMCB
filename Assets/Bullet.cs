@@ -25,14 +25,12 @@ public class Bullet : MonoBehaviourPun
     {
         if (hitVFX != null)
         {
-            // Lấy điểm va chạm đầu tiên
             ContactPoint contact = collision.contacts[0];
             Quaternion rot = Quaternion.LookRotation(contact.normal);
             Vector3 pos = contact.point;
 
-            // Instantiate hiệu ứng va chạm
             GameObject vfx = Instantiate(hitVFX, pos, rot);
-            Destroy(vfx, 2f); // tự hủy hiệu ứng sau 2s
+            Destroy(vfx, 2f);
         }
 
         // Kiểm tra đạn không làm trúng chính player bắn ra
@@ -44,7 +42,6 @@ public class Bullet : MonoBehaviourPun
             Health targetHealth = collision.gameObject.GetComponent<Health>();
             if (targetHealth != null)
             {
-                // Gửi damage đến tất cả client
                 targetHealth.photonView.RPC("TakeDamage", RpcTarget.All, damage);
 
 
