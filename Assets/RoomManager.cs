@@ -14,7 +14,7 @@ public class RoomManager : MonoBehaviourPunCallbacks
     public GameObject roomCam;
     public GameObject nameUI;
     public GameObject connectingUI;
-    public GameObject selectUI; // panel chọn server
+    public GameObject selectUI; 
     
     private string nickname = "unnamed";
     [HideInInspector]
@@ -55,7 +55,6 @@ public class RoomManager : MonoBehaviourPunCallbacks
         selectUI.SetActive(true);
     }
 
-    // Hàm này nên được gọi trong scene chơi (sau khi JoinOrCreateRoom và LoadLevel xong)
     public void SpawnPlayer()
     {
         StartCoroutine(RespawnCoroutine());

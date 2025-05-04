@@ -9,6 +9,8 @@ public class Health : MonoBehaviourPun
     public bool isLocalPlayer;
     [Header("VFX")]
     public GameObject deathVFX;
+    [Header("Invincible VFX")]
+    [SerializeField] private GameObject invincibleVFXObject;
     [Header("UI")]
     [SerializeField] private TextMeshProUGUI healthText;
     private bool isInvincible = false;
@@ -64,13 +66,32 @@ public class Health : MonoBehaviourPun
             invincibleCoroutine = null;
         }
         isInvincible = false;
+        photonView.RPC("DisableInvincibleVFX", RpcTarget.All);
     }
 
     private IEnumerator InvincibleCoroutine(float duration)
     {
         isInvincible = true;
+
+        photonView.RPC("EnableInvincibleVFX", RpcTarget.All); 
+
         yield return new WaitForSeconds(duration);
+
         isInvincible = false;
+
+        photonView.RPC("DisableInvincibleVFX", RpcTarget.All); 
+    }
+    [PunRPC]
+    public void EnableInvincibleVFX()
+    {
+        if (invincibleVFXObject != null)
+            invincibleVFXObject.SetActive(true);
     }
 
+    [PunRPC]
+    public void DisableInvincibleVFX()
+    {
+        if (invincibleVFXObject != null)
+            invincibleVFXObject.SetActive(false);
+    }
 }
