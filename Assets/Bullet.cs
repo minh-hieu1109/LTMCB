@@ -46,7 +46,7 @@ public class Bullet : MonoBehaviourPun
 
 
                 // Nếu damage đủ giết mục tiêu
-                if (damage > targetHealth.health)
+                if (damage > targetHealth.health && !targetHealth.IsInvincible())
                 {
                     RoomManager.instance.kills++;
                     RoomManager.instance.SetHashes();

@@ -1,6 +1,5 @@
 ﻿using UnityEngine;
 using Photon.Pun;
-using Photon.Realtime;
 using System.Collections;
 using TMPro;
 public class Health : MonoBehaviourPun
@@ -93,5 +92,9 @@ public class Health : MonoBehaviourPun
     {
         if (invincibleVFXObject != null)
             invincibleVFXObject.SetActive(false);
+    }
+    public bool IsInvincible()
+    {
+        return isInvincible;
     }
 }
