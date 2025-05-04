@@ -5,7 +5,7 @@ using Hashtable = ExitGames.Client.Photon.Hashtable;
 public class RoomManager : MonoBehaviourPunCallbacks
 {
     public static RoomManager instance;
-    
+    public GameObject chatPanel;
     [Header("Player")]
     public GameObject player;
     public Transform[] spawnPoints;

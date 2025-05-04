@@ -4,12 +4,14 @@ using WebSocketSharp;
 using Photon.Pun;
 public class GameChat : MonoBehaviour
 {
+    
     public TextMeshProUGUI chatText;
     public TMP_InputField inputField;
 
     private bool isInputFieldToggled;
     void Update()
     {
+        
         if (Input.GetKeyDown(KeyCode.I))
         {
             if (!isInputFieldToggled)
