@@ -64,21 +64,22 @@ public class Health : MonoBehaviourPun
             StopCoroutine(invincibleCoroutine);
             invincibleCoroutine = null;
         }
-        isInvincible = false;
+
+        photonView.RPC("SetInvincibleState", RpcTarget.AllBuffered, false); 
         photonView.RPC("DisableInvincibleVFX", RpcTarget.All);
     }
 
     private IEnumerator InvincibleCoroutine(float duration)
     {
-        isInvincible = true;
+        photonView.RPC("SetInvincibleState", RpcTarget.AllBuffered, true); 
 
-        photonView.RPC("EnableInvincibleVFX", RpcTarget.All); 
+        photonView.RPC("EnableInvincibleVFX", RpcTarget.All);
 
         yield return new WaitForSeconds(duration);
 
-        isInvincible = false;
+        photonView.RPC("SetInvincibleState", RpcTarget.AllBuffered, false); 
 
-        photonView.RPC("DisableInvincibleVFX", RpcTarget.All); 
+        photonView.RPC("DisableInvincibleVFX", RpcTarget.All);
     }
     [PunRPC]
     public void EnableInvincibleVFX()
@@ -96,5 +97,10 @@ public class Health : MonoBehaviourPun
     public bool IsInvincible()
     {
         return isInvincible;
+    }
+    [PunRPC]
+    public void SetInvincibleState(bool value)
+    {
+        isInvincible = value;
     }
 }

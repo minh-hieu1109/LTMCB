@@ -33,8 +33,12 @@ public class Bullet : MonoBehaviourPun
             Destroy(vfx, 2f);
         }
 
-        // Kiểm tra đạn không làm trúng chính player bắn ra
-        if (!photonView.IsMine) return;
+        // Chỉ xử lý va chạm nếu đạn này là của mình (người bắn)
+        if (!photonView.IsMine)
+        {
+            PhotonNetwork.Destroy(gameObject); // vẫn nên huỷ để đồng bộ visual
+            return;
+        }
 
         PhotonView targetView = collision.gameObject.GetComponent<PhotonView>();
         if (targetView != null && targetView != photonView)
@@ -42,19 +46,25 @@ public class Bullet : MonoBehaviourPun
             Health targetHealth = collision.gameObject.GetComponent<Health>();
             if (targetHealth != null)
             {
-                targetHealth.photonView.RPC("TakeDamage", RpcTarget.All, damage);
-
-
-                // Nếu damage đủ giết mục tiêu
-                if (damage > targetHealth.health && !targetHealth.IsInvincible())
+                if (targetHealth.IsInvincible())
                 {
-                    RoomManager.instance.kills++;
-                    RoomManager.instance.SetHashes();
+                    Debug.Log("Dang bat tu");
+                }
+                else
+                {
+                    targetHealth.photonView.RPC("TakeDamage", RpcTarget.All, damage);
+
+                    if (damage > targetHealth.health)
+                    {
+                        RoomManager.instance.kills++;
+                        RoomManager.instance.SetHashes();
+                    }
+
+                    Debug.Log("ban duoc");
                 }
             }
-
-            PhotonNetwork.Destroy(gameObject);
         }
+
         PhotonNetwork.Destroy(gameObject);
     }
 }
