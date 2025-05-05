@@ -14,8 +14,11 @@ public class RoomManager : MonoBehaviourPunCallbacks
     public GameObject roomCam;
     public GameObject nameUI;
     public GameObject connectingUI;
-    public GameObject selectUI; 
-    
+    public GameObject selectUI;
+    [Header("Pickup Prefabs")]
+    public GameObject box1Prefab;
+    [Header("Box Spawn Points")]
+    public Transform[] boxSpawnPoints;
     private string nickname = "unnamed";
     [HideInInspector]
     public int kills = 0;
@@ -47,7 +50,6 @@ public class RoomManager : MonoBehaviourPunCallbacks
         Debug.Log("Connected to Photon Master Server!");
         PhotonNetwork.JoinLobby();
     }
-
     public override void OnJoinedLobby()
     {
         Debug.Log("Joined lobby. Waiting for server selection...");
@@ -89,6 +91,22 @@ public class RoomManager : MonoBehaviourPunCallbacks
         {
         }
     }
-    
+    public void SpawnBox1()
+    {
+        if (!PhotonNetwork.IsMasterClient) return;
 
+        if (boxSpawnPoints.Length == 0) return;
+
+        int randomIndex = Random.Range(0, boxSpawnPoints.Length);
+        Vector3 spawnPos = boxSpawnPoints[randomIndex].position;
+
+        PhotonNetwork.Instantiate(box1Prefab.name, spawnPos, Quaternion.identity);
+    }
+    public void StartSpawnBoxLoop(float interval)
+    {
+        if (PhotonNetwork.IsMasterClient)
+        {
+            InvokeRepeating(nameof(SpawnBox1), interval, interval);
+        }
+    }
 }

@@ -28,5 +28,14 @@ public class ServerSelector : MonoBehaviourPunCallbacks
         roomCam.SetActive(false);
         Debug.Log("Đã vào phòng: " + PhotonNetwork.CurrentRoom.Name);
         RoomManager.instance.SpawnPlayer();
+        if (PhotonNetwork.IsMasterClient)
+        {
+            RoomManager.instance.SpawnBox1();
+            RoomManager.instance.StartSpawnBoxLoop(10f);
+        }
+    }
+    private void SpawnBoxRepeat()
+    {
+        RoomManager.instance.SpawnBox1();
     }
 }

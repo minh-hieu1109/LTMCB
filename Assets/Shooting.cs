@@ -6,7 +6,7 @@ public class TankShooting : MonoBehaviourPun
     public GameObject bulletPrefab;
     public Transform firePoint;
 
-    public float fireCooldown = 0.5f; // Thời gian chờ giữa 2 lần bắn
+    public float fireCooldown = 1f; 
     private float lastFireTime;
 
     void Update()
@@ -30,5 +30,18 @@ public class TankShooting : MonoBehaviourPun
         {
             GetComponent<Health>().CancelInvincible();
         }
+    }
+    [PunRPC]
+    public void FireCollD(float duration)
+    {
+        fireCooldown = 0f;
+
+        CancelInvoke(nameof(ResetPower));
+        Invoke(nameof(ResetPower), duration);
+    }
+
+    private void ResetPower()
+    {
+        fireCooldown = 1f;
     }
 }

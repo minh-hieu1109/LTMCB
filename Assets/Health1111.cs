@@ -103,4 +103,15 @@ public class Health : MonoBehaviourPun
     {
         isInvincible = value;
     }
+    [PunRPC]
+    public void Heal(int amount)
+    {
+        health += amount;
+        if (photonView.IsMine)
+        {
+            healthText.text = health.ToString();
+        }
+
+        Debug.Log($"Healed for {amount}. Current health: {health}");
+    }
 }

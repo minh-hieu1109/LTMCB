@@ -6,6 +6,7 @@ public class Movement : MonoBehaviourPun
 {
     public float moveSpeed = 7f;
     public float rotateSpeed = 100f;
+    private float originalSpeed = 7f;
     private Rigidbody rb;
 
     void Start()
@@ -41,5 +42,18 @@ public class Movement : MonoBehaviourPun
 
         Vector3 movement = transform.forward * v * moveSpeed;
         rb.linearVelocity = new Vector3(movement.x, rb.linearVelocity.y, movement.z);
+    }
+    [PunRPC]
+    public void ApplyPowerUp(float duration)
+    {
+        moveSpeed += 5f; 
+
+        CancelInvoke(nameof(ResetPowerUp));
+        Invoke(nameof(ResetPowerUp), duration);
+    }
+
+    private void ResetPowerUp()
+    {
+        moveSpeed = originalSpeed;
     }
 }
