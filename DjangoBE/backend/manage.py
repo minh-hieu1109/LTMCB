@@ -20,3 +20,5 @@ def main():
 
 if __name__ == '__main__':
     main()
+from django.contrib.auth.models import User
+User.objects.filter(is_active=False).delete()  # Xóa user chưa kích hoạt
