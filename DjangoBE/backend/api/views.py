@@ -51,22 +51,30 @@ class CreatePlayerUserView(generics.CreateAPIView):
         if User.objects.filter(username=username).exists():
             raise serializers.ValidationError("Username đã được sử dụng.")
         
-        # Tạo user
-        user = serializer.save(is_active=False)
+        # Lưu thông tin tạm vào cache
+        user_data = {
+            'username': username,
+            'email': email,
+            'password': serializer.validated_data.get("password"),
+            'first_name': serializer.validated_data.get("first_name"),
+            'last_name': serializer.validated_data.get("last_name"),
+        }
         verification_code = get_random_string(length=6, allowed_chars='0123456789')
-        cache.set(f"email_verification_{user.username}", verification_code, timeout=600)
+        cache.set(f"pending_user_{username}", user_data, timeout=120) # Hết hạn sau 120 giây
+        cache.set(f"email_verification_{username}", verification_code, timeout=120)
         
         try:
             send_mail(
                 subject='Xác thực tài khoản Unity Game',
-                message=f'Chào bạn,\n\nMã xác thực tài khoản Unity Game của bạn là: {verification_code}\n\nVui lòng nhập mã này trong ứng dụng để kích hoạt tài khoản.\n\nTrân trọng,\nUnity Game Team',
+                message=f'Chào bạn,\n\nMã xác thực tài khoản Unity Game của bạn là: {verification_code}\nVui lòng nhập mã này trong ứng dụng để kích hoạt tài khoản.\nMã có hiệu lực trong 2 phút.\n\nTrân trọng,\nUnity Game Team',
                 from_email=os.getenv('DEFAULT_FROM_EMAIL', 'anhquan02114869@gmail.com'),
                 recipient_list=[email],
                 fail_silently=False,
             )
             print(f"[DEBUG] Sent code {verification_code} to {email}")
         except Exception as e:
-            user.delete()
+            cache.delete(f"pending_user_{username}")
+            cache.delete(f"email_verification_{username}")
             print(f"[ERROR] Gửi email thất bại: {e}")
             raise serializers.ValidationError(f"Không thể gửi mã xác thực: {e}")
 
@@ -78,12 +86,12 @@ class CreatePlayerUserView(generics.CreateAPIView):
         username = serializer.validated_data['username']
         email = serializer.validated_data['email']
         return Response({
-            "message": "Tài khoản đã được tạo. Vui lòng kiểm tra email để xác thực.",
+            "message": "Vui lòng kiểm tra email để xác thực trong 2 phút.",
             "username": username,
             "email": email
         }, status=201)
 
-# XÁC THỰC EMAIL TỪ NGƯỜI DÙNG
+# XÁC THỰC EMAIL
 class VerifyEmailView(APIView):
     permission_classes = [AllowAny]
 
@@ -95,18 +103,31 @@ class VerifyEmailView(APIView):
             return Response({"error": "Thiếu username hoặc token"}, status=400)
 
         verification_code = cache.get(f"email_verification_{username}")
-        if verification_code != token:
+        user_data = cache.get(f"pending_user_{username}")
+        if not user_data or verification_code != token:
+            cache.delete(f"pending_user_{username}")
+            cache.delete(f"email_verification_{username}")
             return Response({"error": "Mã xác thực không đúng hoặc đã hết hạn"}, status=400)
 
         try:
-            user = User.objects.get(username=username)
-            user.is_active = True
-            user.save()
+            # Tạo user trong database
+            user = User.objects.create_user(
+                username=user_data['username'],
+                email=user_data['email'],
+                password=user_data['password'],
+                first_name=user_data['first_name'],
+                last_name=user_data['last_name'],
+                is_active=True
+            )
+            cache.delete(f"pending_user_{username}")
             cache.delete(f"email_verification_{username}")
+            print(f"[DEBUG] User {username} created and verified")
             return Response({"message": "Xác thực email thành công!"})
-        except User.DoesNotExist:
-            return Response({"error": "Không tìm thấy người dùng"}, status=404)
-
+        except Exception as e:
+            cache.delete(f"pending_user_{username}")
+            cache.delete(f"email_verification_{username}")
+            print(f"[ERROR] Tạo user thất bại: {e}")
+            return Response({"error": f"Lỗi khi tạo user: {e}"}, status=500)
 # backend/api/views.py
 from rest_framework_simplejwt.views import TokenObtainPairView
 from rest_framework import serializers

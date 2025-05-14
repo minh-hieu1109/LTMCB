@@ -10,11 +10,16 @@ public class AuthManager : MonoBehaviour
     [Header("Register Form")]
     public TMP_InputField regUsername, regFirstName, regLastName, regEmail, regPassword;
     public TMP_Text regMessage;
-    public GameObject registerForm, loginForm;
+    public GameObject registerForm, loginForm, verifyForm;
 
     [Header("Login Form")]
     public TMP_InputField loginUsername, loginPassword;
     public TMP_Text loginMessage;
+
+    [Header("Verify Form")]
+    public TMP_InputField codeInput;
+    public TMP_Text verifyMessage;
+    private string currentUsername;
 
     [System.Serializable]
     public class TokenResponse
@@ -24,9 +29,45 @@ public class AuthManager : MonoBehaviour
     }
 
     [System.Serializable]
+    public class RegisterResponse
+    {
+        public string message;
+        public string username;
+        public string email;
+    }
+
+    [System.Serializable]
+    public class VerifyResponse
+    {
+        public string message;
+        public string error;
+    }
+
+    [System.Serializable]
     public class ErrorResponse
     {
         public string detail;
+    }
+
+    [System.Serializable]
+    public class GenericErrorResponse
+    {
+        public string error;
+    }
+
+    void Awake()
+    {
+        DontDestroyOnLoad(gameObject);
+    }
+
+    void Start()
+    {
+        // Xóa PlayerPrefs để ngăn nhảy Scene (bỏ sau khi test)
+        PlayerPrefs.DeleteAll();
+        // Mở LoginForm mặc định
+        if (loginForm != null) loginForm.SetActive(true);
+        if (registerForm != null) registerForm.SetActive(false);
+        if (verifyForm != null) verifyForm.SetActive(false);
     }
 
     public void OnRegisterButton()
@@ -41,114 +82,230 @@ public class AuthManager : MonoBehaviour
 
     public void OnOpenLoginButton()
     {
-        registerForm.SetActive(false);
-        loginForm.SetActive(true);
+        if (registerForm != null) registerForm.SetActive(false);
+        if (loginForm != null) loginForm.SetActive(true);
+        if (verifyForm != null) verifyForm.SetActive(false);
     }
 
     public void OnOpenRegisterButton()
     {
-        loginForm.SetActive(false);
-        registerForm.SetActive(true);
+        if (loginForm != null) loginForm.SetActive(false);
+        if (registerForm != null) registerForm.SetActive(true);
+        if (verifyForm != null) verifyForm.SetActive(false);
+    }
+
+    public void OnVerifyButton()
+    {
+        StartCoroutine(VerifyEmail());
     }
 
     IEnumerator Register()
     {
-        if (string.IsNullOrEmpty(regUsername.text) || string.IsNullOrEmpty(regFirstName.text) ||
-            string.IsNullOrEmpty(regLastName.text) || string.IsNullOrEmpty(regEmail.text) ||
-            string.IsNullOrEmpty(regPassword.text))
+        if (regUsername == null || regFirstName == null || regLastName == null || regEmail == null || regPassword == null)
         {
-            regMessage.text = "❌ Vui lòng điền đầy đủ thông tin.";
-            yield break;
+            if (regMessage != null) regMessage.text = "X Lỗi: UI components chưa được gán.";
+            yield return null;
         }
-
-        if (!regEmail.text.Contains("@") || !regEmail.text.Contains("."))
+        else if (string.IsNullOrEmpty(regUsername.text) || string.IsNullOrEmpty(regFirstName.text) ||
+                 string.IsNullOrEmpty(regLastName.text) || string.IsNullOrEmpty(regEmail.text) ||
+                 string.IsNullOrEmpty(regPassword.text))
         {
-            regMessage.text = "❌ Email không hợp lệ.";
-            yield break;
+            if (regMessage != null) regMessage.text = "X Vui lòng điền đầy đủ thông tin.";
+            yield return null;
         }
-
-        WWWForm form = new WWWForm();
-        form.AddField("username", regUsername.text);
-        form.AddField("first_name", regFirstName.text);
-        form.AddField("last_name", regLastName.text);
-        form.AddField("email", regEmail.text);
-        form.AddField("password", regPassword.text);
-        Debug.Log($"Sending: username={regUsername.text}, first_name={regFirstName.text}, last_name={regLastName.text}, email={regEmail.text}, password={regPassword.text}");
-
-        using (UnityWebRequest www = UnityWebRequest.Post("http://127.0.0.1:8000/player/register/", form))
+        else if (!regEmail.text.Contains("@") || !regEmail.text.Contains("."))
         {
-            www.SetRequestHeader("Content-Type", "application/x-www-form-urlencoded");
-            yield return www.SendWebRequest();
+            if (regMessage != null) regMessage.text = "X Email không hợp lệ.";
+            yield return null;
+        }
+        else
+        {
+            WWWForm form = new WWWForm();
+            form.AddField("username", regUsername.text);
+            form.AddField("first_name", regFirstName.text);
+            form.AddField("last_name", regLastName.text);
+            form.AddField("email", regEmail.text);
+            form.AddField("password", regPassword.text);
 
-            if (www.result == UnityWebRequest.Result.Success)
+            using (UnityWebRequest www = UnityWebRequest.Post("http://127.0.0.1:8000/player/register/", form))
             {
-                Debug.Log("Đăng ký response: " + www.downloadHandler.text);
-                try
+                www.SetRequestHeader("Content-Type", "application/x-www-form-urlencoded");
+                yield return www.SendWebRequest();
+
+                if (www.result == UnityWebRequest.Result.Success)
                 {
-                    var response = JsonUtility.FromJson<RegisterResponse>(www.downloadHandler.text);
-                    regMessage.text = "✅ " + response.message;
-                    //registerForm.SetActive(false);
-                    //verifyForm.SetActive(true); // Chuyển sang form xác thực
+                    RegisterResponse response = null;
+                    bool parseSuccess = false;
+                    try
+                    {
+                        response = JsonUtility.FromJson<RegisterResponse>(www.downloadHandler.text);
+                        parseSuccess = response != null && !string.IsNullOrEmpty(response.message);
+                    }
+                    catch
+                    {
+                        parseSuccess = false;
+                    }
+
+                    if (parseSuccess)
+                    {
+                        if (regMessage != null) regMessage.text = "OK " + response.message;
+                        currentUsername = response.username;
+                        if (registerForm != null && verifyForm != null)
+                        {
+                            registerForm.SetActive(false);
+                            verifyForm.SetActive(true);
+                            if (verifyMessage != null) verifyMessage.text = "Nhập mã xác thực từ email";
+                        }
+                        else
+                        {
+                            Debug.LogError("registerForm hoặc verifyForm chưa được gán");
+                            if (regMessage != null) regMessage.text = "X Lỗi: UI chưa được gán.";
+                        }
+                    }
+                    else
+                    {
+                        if (regMessage != null) regMessage.text = "X Lỗi: Phản hồi không hợp lệ từ server.";
+                    }
+                    yield return null;
                 }
-                catch
+                else
                 {
-                    regMessage.text = "❌ Lỗi: Phản hồi không hợp lệ từ server.";
-                    Debug.LogError("Lỗi parse JSON: " + www.downloadHandler.text);
+                    string errorMsg = ParseErrorMessage(www.downloadHandler.text);
+                    if (regMessage != null) regMessage.text = "X Lỗi: " + errorMsg;
+                    yield return null;
                 }
-            }
-            else
-            {
-                Debug.LogError($"Đăng ký thất bại: {www.result}, Error: {www.error}, Response: {www.downloadHandler.text}");
-                string errorMsg = ParseErrorMessage(www.downloadHandler.text);
-                regMessage.text = "❌ Lỗi: " + errorMsg;
             }
         }
     }
 
-    [System.Serializable]
-    private class RegisterResponse
+    IEnumerator VerifyEmail()
     {
-        public string message;
-        public string username;
-        public string email;
+        if (codeInput == null || string.IsNullOrEmpty(codeInput.text))
+        {
+            if (verifyMessage != null) verifyMessage.text = "X Vui lòng nhập mã xác thực.";
+            yield return null;
+        }
+        else if (string.IsNullOrEmpty(currentUsername))
+        {
+            if (verifyMessage != null) verifyMessage.text = "X Lỗi: Username không hợp lệ.";
+            yield return null;
+        }
+        else
+        {
+            string url = $"http://127.0.0.1:8000/verify-email/?username={UnityWebRequest.EscapeURL(currentUsername)}&token={UnityWebRequest.EscapeURL(codeInput.text)}";
+
+            using (UnityWebRequest www = UnityWebRequest.Get(url))
+            {
+                yield return www.SendWebRequest();
+
+                if (www.result == UnityWebRequest.Result.Success)
+                {
+                    VerifyResponse response = null;
+                    bool parseSuccess = false;
+                    try
+                    {
+                        response = JsonUtility.FromJson<VerifyResponse>(www.downloadHandler.text);
+                        parseSuccess = response != null && !string.IsNullOrEmpty(response.message);
+                    }
+                    catch
+                    {
+                        parseSuccess = false;
+                    }
+
+                    if (parseSuccess)
+                    {
+                        if (verifyMessage != null) verifyMessage.text = "OK Đăng ký thành công!";
+                        yield return new WaitForSeconds(2f);
+                        if (verifyForm != null && loginForm != null)
+                        {
+                            verifyForm.SetActive(false);
+                            loginForm.SetActive(true);
+                        }
+                        else
+                        {
+                            Debug.LogError("verifyForm hoặc loginForm chưa được gán");
+                            if (verifyMessage != null) verifyMessage.text = "X Lỗi: UI chưa được gán.";
+                        }
+                    }
+                    else
+                    {
+                        if (verifyMessage != null) verifyMessage.text = "X Mã xác thực không đúng, vui lòng nhập lại.";
+                    }
+                    yield return null;
+                }
+                else
+                {
+                    string errorMsg = ParseErrorMessage(www.downloadHandler.text);
+                    if (verifyMessage != null) verifyMessage.text = "X Lỗi: " + errorMsg;
+                    yield return null;
+                }
+            }
+        }
     }
 
     IEnumerator Login()
     {
-        WWWForm form = new WWWForm();
-        form.AddField("username", loginUsername.text);
-        form.AddField("password", loginPassword.text);
-
-        using (UnityWebRequest www = UnityWebRequest.Post("http://127.0.0.1:8000/token/", form))
+        if (loginUsername == null || loginPassword == null)
         {
-            yield return www.SendWebRequest();
+            if (loginMessage != null) loginMessage.text = "X Lỗi: UI components chưa được gán.";
+            yield return null;
+        }
+        else if (string.IsNullOrEmpty(loginUsername.text) || string.IsNullOrEmpty(loginPassword.text))
+        {
+            if (loginMessage != null) loginMessage.text = "X Vui lòng điền đầy đủ thông tin.";
+            yield return null;
+        }
+        else
+        {
+            WWWForm form = new WWWForm();
+            form.AddField("username", loginUsername.text);
+            form.AddField("password", loginPassword.text);
 
-            if (www.result == UnityWebRequest.Result.Success)
+            using (UnityWebRequest www = UnityWebRequest.Post("http://127.0.0.1:8000/token/", form))
             {
-                Debug.Log("Đăng nhập response: " + www.downloadHandler.text);
-                try
+                www.SetRequestHeader("Content-Type", "application/x-www-form-urlencoded");
+                yield return www.SendWebRequest();
+
+                if (www.result == UnityWebRequest.Result.Success)
                 {
-                    TokenResponse token = JsonUtility.FromJson<TokenResponse>(www.downloadHandler.text);
-                    PlayerPrefs.SetString("access_token", token.access);
-                    PlayerPrefs.SetString("refresh_token", token.refresh);
-                    loginMessage.text = "✅ Đăng nhập thành công!";
-                    SceneManager.LoadScene("GameScene", LoadSceneMode.Single);
+                    TokenResponse token = null;
+                    bool parseSuccess = false;
+                    try
+                    {
+                        token = JsonUtility.FromJson<TokenResponse>(www.downloadHandler.text);
+                        parseSuccess = token != null && !string.IsNullOrEmpty(token.access);
+                    }
+                    catch
+                    {
+                        parseSuccess = false;
+                    }
+
+                    if (parseSuccess)
+                    {
+                        PlayerPrefs.SetString("access_token", token.access);
+                        PlayerPrefs.SetString("refresh_token", token.refresh);
+                        if (loginMessage != null) loginMessage.text = "OK Đăng nhập thành công!";
+                        // Tắt tất cả giao diện trước khi chuyển Scene
+
+                        if (gameObject != null) gameObject.SetActive(false);
+                        SceneManager.LoadScene("GameScene", LoadSceneMode.Single);
+                    }
+                    else
+                    {
+                        if (loginMessage != null) loginMessage.text = "X Đăng nhập thất bại: Phản hồi không hợp lệ.";
+                        yield return null;
+                    }
                 }
-                catch
+                else
                 {
-                    loginMessage.text = "❌ Đăng nhập thất bại: Phản hồi không hợp lệ.";
-                    Debug.LogError("Lỗi parse JSON: " + www.downloadHandler.text);
+                    string errorMsg = ParseErrorMessage(www.downloadHandler.text);
+                    if (loginMessage != null) loginMessage.text = "X Lỗi: " + errorMsg;
+                    yield return null;
                 }
-            }
-            else
-            {
-                Debug.LogError($"Đăng nhập thất bại: {www.result}, Error: {www.error}, Response: {www.downloadHandler.text}");
-                loginMessage.text = "❌ Lỗi: " + ParseErrorMessage(www.downloadHandler.text);
             }
         }
     }
 
-    // Trích xuất lỗi từ JSON (nếu có)
     private string ParseErrorMessage(string json)
     {
         try
@@ -165,21 +322,6 @@ public class AuthManager : MonoBehaviour
                 return genericErr.error;
         }
         catch { }
-        return "Không thể xử lý phản hồi từ server: " + json.Substring(0, Mathf.Min(json.Length, 200)); // Giới hạn độ dài
-    }
-
-    [System.Serializable]
-    public class GenericErrorResponse
-    {
-        public string error;
+        return "Không thể xử lý phản hồi từ server.";
     }
 }
-
-//void Start()
-//{
-//    // Kiểm tra nếu người dùng đã đăng nhập, tự động chuyển tới GameScene
-//    if (PlayerPrefs.HasKey("access_token"))
-//    {
-//        SceneManager.LoadScene("GameScene", LoadSceneMode.Single);
-//    }
-//}
