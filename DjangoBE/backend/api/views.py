@@ -1,18 +1,145 @@
+import os
+import re
 from rest_framework import generics
 from django.contrib.auth.models import User
 from .serializers import PlayerRegisterSerializer
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated,AllowAny
+from rest_framework.permissions import IsAuthenticated, AllowAny
 from django.db.models import Q
-from .models import Player, Friendship
+from .models import Player, Friendship, FriendRequest
 from .serializers import *
+from django.utils.crypto import get_random_string
+from django.core.cache import cache
+from django.core.mail import send_mail
+from django.http import HttpResponse
+from rest_framework import serializers
 
+# TEST GỬI EMAIL
+def send_test_email(request):
+    try:
+        send_mail(
+            subject='Test Email from Django',
+            message='This is a test email.',
+            from_email=os.getenv('DEFAULT_FROM_EMAIL', 'anhquan02114869@gmail.com'),
+            recipient_list=['anhquan02114869@gmail.com'],
+            fail_silently=False,
+        )
+        print("[DEBUG] Test email sent successfully")
+        return HttpResponse("Email đã được gửi thành công!")
+    except Exception as e:
+        print(f"[ERROR] Gửi email thất bại: {e}")
+        return HttpResponse(f"Không thể gửi email: {e}")
+
+# ĐĂNG KÝ NGƯỜI DÙNG + GỬI MÃ XÁC THỰC
 class CreatePlayerUserView(generics.CreateAPIView):
     queryset = User.objects.all()
     serializer_class = PlayerRegisterSerializer
     permission_classes = [AllowAny]
 
+    def perform_create(self, serializer):
+        email = serializer.validated_data.get("email")
+        username = serializer.validated_data.get("username")
+        print(f"[DEBUG] Received data: username={username}, email={email}")
+        
+        # Kiểm tra định dạng email
+        if not re.match(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$', email):
+            raise serializers.ValidationError("Email không hợp lệ.")
+        
+        if User.objects.filter(email=email).exists():
+            raise serializers.ValidationError("Email đã được sử dụng.")
+        if User.objects.filter(username=username).exists():
+            raise serializers.ValidationError("Username đã được sử dụng.")
+        
+        # Lưu thông tin tạm vào cache
+        user_data = {
+            'username': username,
+            'email': email,
+            'password': serializer.validated_data.get("password"),
+            'first_name': serializer.validated_data.get("first_name"),
+            'last_name': serializer.validated_data.get("last_name"),
+        }
+        verification_code = get_random_string(length=6, allowed_chars='0123456789')
+        cache.set(f"pending_user_{username}", user_data, timeout=120) # Hết hạn sau 120 giây
+        cache.set(f"email_verification_{username}", verification_code, timeout=120)
+        
+        try:
+            send_mail(
+                subject='Xác thực tài khoản Unity Game',
+                message=f'Chào bạn,\n\nMã xác thực tài khoản Unity Game của bạn là: {verification_code}\nVui lòng nhập mã này trong ứng dụng để kích hoạt tài khoản.\nMã có hiệu lực trong 2 phút.\n\nTrân trọng,\nUnity Game Team',
+                from_email=os.getenv('DEFAULT_FROM_EMAIL', 'anhquan02114869@gmail.com'),
+                recipient_list=[email],
+                fail_silently=False,
+            )
+            print(f"[DEBUG] Sent code {verification_code} to {email}")
+        except Exception as e:
+            cache.delete(f"pending_user_{username}")
+            cache.delete(f"email_verification_{username}")
+            print(f"[ERROR] Gửi email thất bại: {e}")
+            raise serializers.ValidationError(f"Không thể gửi mã xác thực: {e}")
+
+    def create(self, request, *args, **kwargs):
+        print(f"[DEBUG] Request data: {request.data}")
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        self.perform_create(serializer)
+        username = serializer.validated_data['username']
+        email = serializer.validated_data['email']
+        return Response({
+            "message": "Vui lòng kiểm tra email để xác thực trong 2 phút.",
+            "username": username,
+            "email": email
+        }, status=201)
+
+# XÁC THỰC EMAIL
+class VerifyEmailView(APIView):
+    permission_classes = [AllowAny]
+
+    def get(self, request):
+        username = request.GET.get("username")
+        token = request.GET.get("token")
+
+        if not username or not token:
+            return Response({"error": "Thiếu username hoặc token"}, status=400)
+
+        verification_code = cache.get(f"email_verification_{username}")
+        user_data = cache.get(f"pending_user_{username}")
+        if not user_data or verification_code != token:
+            cache.delete(f"pending_user_{username}")
+            cache.delete(f"email_verification_{username}")
+            return Response({"error": "Mã xác thực không đúng hoặc đã hết hạn"}, status=400)
+
+        try:
+            # Tạo user trong database
+            user = User.objects.create_user(
+                username=user_data['username'],
+                email=user_data['email'],
+                password=user_data['password'],
+                first_name=user_data['first_name'],
+                last_name=user_data['last_name'],
+                is_active=True
+            )
+            cache.delete(f"pending_user_{username}")
+            cache.delete(f"email_verification_{username}")
+            print(f"[DEBUG] User {username} created and verified")
+            return Response({"message": "Xác thực email thành công!"})
+        except Exception as e:
+            cache.delete(f"pending_user_{username}")
+            cache.delete(f"email_verification_{username}")
+            print(f"[ERROR] Tạo user thất bại: {e}")
+            return Response({"error": f"Lỗi khi tạo user: {e}"}, status=500)
+# backend/api/views.py
+from rest_framework_simplejwt.views import TokenObtainPairView
+from rest_framework import serializers
+
+class CustomTokenObtainPairView(TokenObtainPairView):
+    def post(self, request, *args, **kwargs):
+        user = User.objects.filter(username=request.data.get('username')).first()
+        if user and not user.is_active:
+            raise serializers.ValidationError("Tài khoản chưa được xác thực qua email.")
+        return super().post(request, *args, **kwargs)
+
+# Các view khác
 class SearchFriendView(APIView):
     permission_classes = [IsAuthenticated]
     def get(self, request):
@@ -34,6 +161,8 @@ class SearchFriendView(APIView):
 
         serializer = PlayerSearchSerializer(players, many=True)
         return Response(serializer.data)
+
+# Các view tiếp theo giữ nguyên như cũ
 
 class SearchPlayerView(APIView):
     permission_classes = [AllowAny]

@@ -13,6 +13,18 @@ class PlayerRegisterSerializer(serializers.ModelSerializer):
         fields = ['id', 'username', 'password', 'first_name', 'last_name', 'email']
         extra_kwargs = {'password': {'write_only': True}}
 
+    # Kiểm tra tính hợp lệ của email
+    def validate_email(self, value):
+        if User.objects.filter(email=value).exists():
+            raise serializers.ValidationError("Email đã tồn tại.")
+        return value
+
+    # Kiểm tra tính hợp lệ của username
+    def validate_username(self, value):
+        if User.objects.filter(username=value).exists():
+            raise serializers.ValidationError("Username đã tồn tại.")
+        return value
+
     def create(self, validated_data):
         user = User.objects.create_user(
             username=validated_data["username"],

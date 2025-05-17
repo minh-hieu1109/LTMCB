@@ -1,4 +1,4 @@
-psycopg2
+psycopg2-binary
 django
 django-widget-tweaks
 django-cors-headers
@@ -6,7 +6,6 @@ Pillow
 django-allauth
 django-oauth-toolkit
 asgiref
-django-cors-headers
 djangorestframework
 djangorestframework-simplejwt
 PyJWT
