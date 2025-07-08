@@ -14,6 +14,8 @@ from django.core.cache import cache
 from django.core.mail import send_mail
 from django.http import HttpResponse
 from rest_framework import serializers
+from rest_framework import status
+from django.shortcuts import get_object_or_404
 
 # TEST GỬI EMAIL
 def send_test_email(request):
@@ -271,8 +273,9 @@ class GetFriendRequestsView(APIView):
     
 class GetFriendRequestCount(APIView):
     permission_classes = [IsAuthenticated]
-
     def get(self, request):
-        me = Player.objects.get(user=request.user)
-        friend_requests_count = FriendRequest.objects.filter(to_player=me, accepted__isnull=True).count()
-        return Response({'request_count': friend_requests_count})
+        # Lấy Player từ user hiện tại
+        me = get_object_or_404(Player, user=request.user)
+        # Đếm số yêu cầu kết bạn chưa được chấp nhận
+        friend_requests_count = FriendRequest.objects.filter(to_player=me,accepted__isnull=True).count()
+        return Response({'request_count': friend_requests_count},status=status.HTTP_200_OK)
