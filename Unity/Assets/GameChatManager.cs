@@ -11,11 +11,11 @@ public class GameChatManager : NetworkBehaviour
 
     private static event Action<string> OnMessage;
 
-    private bool chatActive = true;
+    private bool chatVisible = false;
 
     public override void OnStartAuthority()
     {
-        chatUI.SetActive(chatActive);
+        chatUI.SetActive(chatVisible);
         chatText.text = "";
         OnMessage += HandleNewMessage;
     }
@@ -29,25 +29,36 @@ public class GameChatManager : NetworkBehaviour
     {
         if (!isLocalPlayer) return;
 
-        if (Input.GetKeyDown(KeyCode.I))
+        // Nếu đang gõ chat, không toggle bằng T
+        if (!chatInput.isFocused && Input.GetKeyDown(KeyCode.T))
         {
-            chatActive = !chatActive;
-            chatUI.SetActive(chatActive);
-
-            if (chatActive)
-                chatInput.ActivateInputField();
-            else
-                chatInput.DeactivateInputField();
+            ToggleChat();
         }
 
-        if (chatActive && chatInput.isFocused && Input.GetKeyDown(KeyCode.KeypadEnter))
+        if (chatVisible && (Input.GetKeyDown(KeyCode.Return) || Input.GetKeyDown(KeyCode.KeypadEnter)))
         {
             SendMessageFromInput();
         }
     }
 
+    private void ToggleChat()
+    {
+        chatVisible = !chatVisible;
+        chatUI.SetActive(chatVisible);
+
+        if (chatVisible)
+        {
+            chatInput.text = "";
+            chatInput.ActivateInputField();
+        }
+        else
+        {
+            chatInput.DeactivateInputField();
+        }
+    }
+
     [Client]
-    public void SendMessageFromButton() // Gắn vào button OnClick
+    public void SendMessageFromButton()
     {
         SendMessageFromInput();
     }

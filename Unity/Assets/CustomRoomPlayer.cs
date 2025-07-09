@@ -58,7 +58,7 @@ public class CustomRoomPlayer : NetworkRoomPlayer
         GameObject nameGO = new GameObject("PlayerName");
         nameGO.transform.SetParent(uiPanel.transform);
         playerNameText = nameGO.AddComponent<Text>();
-        playerNameText.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+        playerNameText.font = Font.CreateDynamicFontFromOSFont("Arial", 36);
         playerNameText.fontSize = 36;
         playerNameText.color = Color.white;
         playerNameText.alignment = TextAnchor.UpperCenter;

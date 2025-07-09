@@ -7,12 +7,15 @@ using UnityEngine.Networking;
 
 public class FindPlayerManager : MonoBehaviour
 {
+    public static FindPlayerManager instance; // Singleton
+
     [Header("UI")]
     public TMP_InputField searchInput;
     public TMP_Text countRequest;
-    public GameObject[] playerEntries; // G�n FindPlayer, FindPlayer(1), ...
+    public GameObject[] playerEntries;
     public GameObject playerRequest;
     public GameObject playerAdd;
+
     [System.Serializable]
     public class PlayerData
     {
@@ -20,15 +23,38 @@ public class FindPlayerManager : MonoBehaviour
         public string nickname;
     }
 
+    [System.Serializable]
     public class PlayerList
     {
         public List<PlayerData> players;
     }
+
+    [System.Serializable]
+    public class RequestCountResponse
+    {
+        public int request_count;
+    }
+
+    private void Awake()
+    {
+        // Setup Singleton
+        if (instance == null)
+            instance = this;
+        else
+            Destroy(gameObject);
+    }
+
+    private void Start()
+    {
+        StartCoroutine(GetFriendRequestCount());
+    }
+
     public void OnOpenAddFriend()
     {
         playerAdd.SetActive(true);
     }
-    public void OnClosrAddFriend()
+
+    public void OnCloseAddFriend()
     {
         playerAdd.SetActive(false);
     }
@@ -36,7 +62,11 @@ public class FindPlayerManager : MonoBehaviour
     public void OnOpenFriendRequest()
     {
         playerRequest.SetActive(true);
+
+        // Khi mở UI Request => cập nhật luôn số lượng
+        StartCoroutine(GetFriendRequestCount());
     }
+
     public void OnFindButton()
     {
         string query = searchInput.text;
@@ -78,14 +108,13 @@ public class FindPlayerManager : MonoBehaviour
         }
         else
         {
-            Debug.LogError("Loi tim nguoi choii: " + www.downloadHandler.text);
+            Debug.LogError("Lỗi tìm người chơi: " + www.downloadHandler.text);
         }
     }
 
     IEnumerator SendFriendRequest(int playerId)
     {
         string url = "http://127.0.0.1:8000/add-friend/";
-
         WWWForm form = new WWWForm();
         form.AddField("player_id", playerId);
 
@@ -97,13 +126,17 @@ public class FindPlayerManager : MonoBehaviour
         if (www.result == UnityWebRequest.Result.Success)
         {
             Debug.Log("Kết bạn thành công với ID: " + playerId);
+
+            // Sau khi gửi lời mời => cập nhật số lượng lời mời kết bạn
+            StartCoroutine(GetFriendRequestCount());
         }
         else
         {
             Debug.LogError("Không thể kết bạn: " + www.downloadHandler.text);
         }
     }
-    IEnumerator GetFriendRequestCount()
+
+    public IEnumerator GetFriendRequestCount()
     {
         string url = "http://127.0.0.1:8000/get-friend-request-count/";
         UnityWebRequest www = UnityWebRequest.Get(url);
@@ -112,27 +145,18 @@ public class FindPlayerManager : MonoBehaviour
         {
             www.SetRequestHeader("Authorization", "Bearer " + token);
         }
-        yield return www.SendWebRequest(); 
+
+        yield return www.SendWebRequest();
+
         if (www.result == UnityWebRequest.Result.Success)
         {
-            // Nếu thành công, parse JSON và lấy số lượng yêu cầu
             string jsonResponse = www.downloadHandler.text;
             RequestCountResponse response = JsonUtility.FromJson<RequestCountResponse>(jsonResponse);
-            countRequest.text = "" + response.request_count ;
+            countRequest.text = response.request_count.ToString();
         }
         else
         {
-            // Nếu có lỗi, in lỗi ra console
-            Debug.LogError("Error: " + www.downloadHandler.text);
+            Debug.LogError("Lỗi khi lấy số lượng lời mời: " + www.downloadHandler.text);
         }
-    }
-    void Start()
-    {
-        StartCoroutine(GetFriendRequestCount());
-    }
-    [System.Serializable]
-    public class RequestCountResponse
-    {
-        public int request_count;
     }
 }
