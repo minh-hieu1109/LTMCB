@@ -15,17 +15,39 @@ public class RespawnManager : NetworkBehaviour
     [Server]
     public void Respawn(GameObject player)
     {
-        StartCoroutine(RespawnCoroutine(player));
+        NetworkIdentity identity = player.GetComponent<NetworkIdentity>();
+        if (identity == null || identity.connectionToClient == null)
+        {
+            Debug.LogWarning("Respawn failed: no valid connectionToClient");
+            return;
+        }
+
+        StartCoroutine(RespawnCoroutine(player, identity.connectionToClient));
     }
 
-    private System.Collections.IEnumerator RespawnCoroutine(GameObject player)
+    private System.Collections.IEnumerator RespawnCoroutine(GameObject player, NetworkConnectionToClient conn)
     {
         SetPlayerVisible(player, false);
 
         yield return new WaitForSeconds(2f);
 
         Transform spawnPoint = spawnPoints[Random.Range(0, spawnPoints.Length)];
-        player.transform.SetPositionAndRotation(spawnPoint.position, spawnPoint.rotation);
+
+        Rigidbody rb = player.GetComponent<Rigidbody>();
+        if (rb != null)
+        {
+            rb.isKinematic = true;
+        }
+
+        Vector3 safeSpawn = spawnPoint.position + Vector3.up * 0.5f;
+        player.transform.SetPositionAndRotation(safeSpawn, spawnPoint.rotation);
+
+        if (rb != null)
+        {
+            rb.isKinematic = false; 
+            rb.linearVelocity = Vector3.zero; 
+            rb.angularVelocity = Vector3.zero; 
+        }
 
         var health = player.GetComponent<Health>();
         if (health != null)
@@ -35,9 +57,11 @@ public class RespawnManager : NetworkBehaviour
         }
 
         SetPlayerVisible(player, true);
-
-        TargetOnRespawn(player.GetComponent<NetworkIdentity>().connectionToClient);
+        RpcNotifyRespawn(player);
+        TargetOnRespawn(conn);
     }
+
+
 
     void SetPlayerVisible(GameObject player, bool visible)
     {
@@ -55,5 +79,29 @@ public class RespawnManager : NetworkBehaviour
     void TargetOnRespawn(NetworkConnection target)
     {
         Debug.Log("Respawned by server");
+    }
+    [ClientRpc]
+    void RpcNotifyRespawn(GameObject player)
+    {
+        if (player == null) return;
+
+        var deathHandler = player.GetComponent<death>();
+        if (deathHandler != null)
+        {
+            deathHandler.OnRespawn();
+        }
+
+        var renderers = player.GetComponentsInChildren<Renderer>();
+        foreach (var r in renderers)
+            r.enabled = true;
+
+        var colliders = player.GetComponentsInChildren<Collider>();
+        foreach (var c in colliders)
+            c.enabled = true;
+
+        // Bật movement lại
+        var move = player.GetComponent<Movement>();
+        if (move != null)
+            move.enabled = true;
     }
 }

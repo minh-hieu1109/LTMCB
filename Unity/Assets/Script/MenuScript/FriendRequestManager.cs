@@ -1,173 +1,145 @@
 ﻿using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.Networking;
-using System.Collections;
 using TMPro;
+using System.Collections;
 
 public class FriendRequestManager : MonoBehaviour
 {
     [Header("UI")]
-    public GameObject[] playerEntries; // Những gameObject chứa tên và button đồng ý, từ chối
-    private string apiUrl = "http://127.0.0.1:8000/respond-friend-request/"; // URL của backend
-    public GameObject GameObject;
+    public GameObject[] playerEntries; // Các entry UI
+    public GameObject friendRequestPanel;
+
+    private const string BASE_URL = "http://127.0.0.1:8000";
+    private const string TOKEN_KEY = "access_token";
 
     void Start()
     {
         LoadFriendRequests();
     }
 
-    public void CloseOpenFriendRequest()
+    public void CloseFriendRequestPanel()
     {
-        GameObject.SetActive(false);
+        friendRequestPanel.SetActive(false);
     }
 
-    // Load danh sách yêu cầu kết bạn từ backend
     public void LoadFriendRequests()
     {
         StartCoroutine(GetFriendRequests());
     }
 
-    // Gửi yêu cầu GET để lấy danh sách yêu cầu kết bạn
     IEnumerator GetFriendRequests()
     {
-        string url = "http://127.0.0.1:8000/get-friend-requests"; // URL của API backend
+        string url = $"{BASE_URL}/get-friend-requests";
         UnityWebRequest www = UnityWebRequest.Get(url);
 
-        // Thêm Authorization header với token JWT
-        string token = PlayerPrefs.GetString("access_token");
-        if (!string.IsNullOrEmpty(token))
-        {
-            www.SetRequestHeader("Authorization", "Bearer " + token);
-        }
+        AddAuthHeader(www);
 
         yield return www.SendWebRequest();
 
         if (www.result == UnityWebRequest.Result.Success)
         {
-            string json = "{\"requests\":" + www.downloadHandler.text + "}";
+            string jsonResponse = "{\"requests\":" + www.downloadHandler.text + "}";
+            Debug.Log("Received Friend Requests: " + jsonResponse);
 
-            Debug.Log("Received JSON: " + json); // Thêm log này để kiểm tra dữ liệu nhận được
-            FriendRequestList result = JsonUtility.FromJson<FriendRequestList>(json);
-
-            // Duyệt qua các yêu cầu kết bạn và hiển thị chúng trên UI
-            for (int i = 0; i < playerEntries.Length; i++)
-            {
-                if (i < result.requests.Length)
-                {
-                    var friendRequest = result.requests[i];
-                    GameObject entry = playerEntries[i];
-                    entry.SetActive(true);
-
-                    // Kiểm tra và gán các thành phần cần thiết trong playerEntries
-                    TMP_Text text = entry.transform.Find("PlayerName")?.GetComponent<TMP_Text>();
-                    Button acceptButton = entry.transform.Find("AcceptButton")?.GetComponent<Button>();
-                    Button rejectButton = entry.transform.Find("RejectButton")?.GetComponent<Button>();
-
-                    if (text != null)
-                    {
-                        // Lấy tên người gửi từ ID (hoặc từ API nếu bạn có tên người gửi)
-                        text.text = "Player " + friendRequest.from_player; // Tạm thay thế bằng ID người gửi nếu chưa có tên
-                    }
-                    else
-                    {
-                        Debug.LogError("PlayerName component is missing in player entry " + i);
-                    }
-
-                    if (acceptButton != null)
-                    {
-                        acceptButton.onClick.RemoveAllListeners();
-                        acceptButton.onClick.AddListener(() => StartCoroutine(RespondToRequest(friendRequest.id, "accept", entry)));
-                    }
-                    else
-                    {
-                        Debug.LogError("AcceptButton is missing in player entry " + i);
-                    }
-
-                    if (rejectButton != null)
-                    {
-                        rejectButton.onClick.RemoveAllListeners();
-                        rejectButton.onClick.AddListener(() => StartCoroutine(RespondToRequest(friendRequest.id, "reject", entry)));
-                    }
-                    else
-                    {
-                        Debug.LogError("RejectButton is missing in player entry " + i);
-                    }
-                }
-                else
-                {
-                    playerEntries[i].SetActive(false);
-                }
-            }
+            FriendRequestList response = JsonUtility.FromJson<FriendRequestList>(jsonResponse);
+            UpdateFriendRequestUI(response.requests);
         }
         else
         {
-            Debug.LogError("Error getting friend requests: " + www.downloadHandler.text);
+            Debug.LogError("Failed to get friend requests: " + www.error);
         }
     }
 
+    void UpdateFriendRequestUI(FriendRequest[] requests)
+    {
+        for (int i = 0; i < playerEntries.Length; i++)
+        {
+            if (i < requests.Length)
+            {
+                SetupFriendRequestEntry(playerEntries[i], requests[i]);
+            }
+            else
+            {
+                playerEntries[i].SetActive(false);
+            }
+        }
+    }
+
+    void SetupFriendRequestEntry(GameObject entry, FriendRequest request)
+    {
+        entry.SetActive(true);
+
+        TMP_Text nameText = entry.transform.Find("PlayerName")?.GetComponent<TMP_Text>();
+        Button acceptBtn = entry.transform.Find("AcceptButton")?.GetComponent<Button>();
+        Button rejectBtn = entry.transform.Find("RejectButton")?.GetComponent<Button>();
+
+        if (nameText != null)
+            nameText.text = request.fromPlayerName ?? $"Player {request.from_player}";
+        else
+            Debug.LogWarning("Missing PlayerName in entry UI");
+
+        if (acceptBtn != null)
+        {
+            acceptBtn.onClick.RemoveAllListeners();
+            acceptBtn.onClick.AddListener(() => StartCoroutine(RespondToRequest(request.id, "accept", entry)));
+        }
+
+        if (rejectBtn != null)
+        {
+            rejectBtn.onClick.RemoveAllListeners();
+            rejectBtn.onClick.AddListener(() => StartCoroutine(RespondToRequest(request.id, "reject", entry)));
+        }
+    }
 
     IEnumerator RespondToRequest(int requestId, string action, GameObject entry)
     {
-        string url = apiUrl; // URL API backend
+        string url = $"{BASE_URL}/respond-friend-request/";
         UnityWebRequest www = new UnityWebRequest(url, "POST");
 
-        // Tạo dữ liệu JSON với RequestData
         string jsonData = JsonUtility.ToJson(new RequestData { request_id = requestId, action = action });
-        byte[] bodyRaw = System.Text.Encoding.UTF8.GetBytes(jsonData);
-
-        // Gửi JSON body
-        www.uploadHandler = new UploadHandlerRaw(bodyRaw);
+        www.uploadHandler = new UploadHandlerRaw(System.Text.Encoding.UTF8.GetBytes(jsonData));
         www.downloadHandler = new DownloadHandlerBuffer();
 
-        // Đặt header Content-Type là application/json
         www.SetRequestHeader("Content-Type", "application/json");
+        AddAuthHeader(www);
 
-        // Thêm header Authorization nếu có token
-        string token = PlayerPrefs.GetString("access_token");
-        if (!string.IsNullOrEmpty(token))
-        {
-            www.SetRequestHeader("Authorization", "Bearer " + token);
-        }
-
-        // Gửi request
         yield return www.SendWebRequest();
 
-        // Kiểm tra kết quả
         if (www.result == UnityWebRequest.Result.Success)
         {
-            Debug.Log("Response: " + www.downloadHandler.text);
-
-            // Ngay lập tức ẩn entry đã được xử lý (chấp nhận hoặc từ chối)
+            Debug.Log($"Successfully {action}ed request {requestId}");
             if (entry != null)
-            {
-                entry.SetActive(false);  // Hoặc sử dụng Destroy(entry) để xóa hoàn toàn
-            }
-
-            // Bạn có thể gọi lại GetFriendRequests() nếu muốn tải lại dữ liệu mới từ server
-            // GetFriendRequests();
+                entry.SetActive(false);
         }
         else
         {
-            Debug.LogError("Error responding to friend request: " + www.downloadHandler.text);
+            Debug.LogError($"Failed to {action} friend request: {www.error}");
         }
     }
 
+    void AddAuthHeader(UnityWebRequest www)
+    {
+        string token = PlayerPrefs.GetString(TOKEN_KEY);
+        if (!string.IsNullOrEmpty(token))
+            www.SetRequestHeader("Authorization", $"Bearer {token}");
+    }
 
-    // Cấu trúc dữ liệu FriendRequest
+    // Data structures
     [System.Serializable]
     public class FriendRequest
     {
         public int id;
-        public string fromPlayerName; // Chắc chắn có tên người gửi
-        public int from_player; // ID người gửi
+        public string fromPlayerName;
+        public int from_player;
     }
 
-    // Cấu trúc dữ liệu FriendRequestList
     [System.Serializable]
     public class FriendRequestList
     {
         public FriendRequest[] requests;
     }
+
     [System.Serializable]
     public class RequestData
     {

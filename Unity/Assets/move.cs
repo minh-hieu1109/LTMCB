@@ -1,46 +1,40 @@
-using UnityEngine;
+﻿using UnityEngine;
 using Mirror;
 
 [RequireComponent(typeof(Rigidbody))]
 public class Movement : NetworkBehaviour
 {
     public float moveSpeed = 7f;
-    public float rotateSpeed = 100f;
+    public float rotateSpeed = 50;
     private Rigidbody rb;
 
     void Start()
     {
         rb = GetComponent<Rigidbody>();
 
-        if (!isLocalPlayer)
-        {
-            rb.isKinematic = true;
-            this.enabled = false;
-        }
-
         rb.constraints = RigidbodyConstraints.FreezeRotationX | RigidbodyConstraints.FreezeRotationZ;
     }
 
-    float h;
+    float moveInput;
+    float rotateInput;
 
     void Update()
     {
         if (!isLocalPlayer) return;
 
-        h = Input.GetAxis("Horizontal");
+        moveInput = Input.GetAxis("Vertical");
+        rotateInput = Input.GetAxis("Horizontal");
 
-        Quaternion turn = Quaternion.Euler(0f, h * rotateSpeed * Time.deltaTime, 0f);
-        rb.MoveRotation(rb.rotation * turn);
+        CmdMove(moveInput, rotateInput);
     }
 
-    void FixedUpdate()
+    [Command]
+    void CmdMove(float move, float rotate)
     {
-        if (!isLocalPlayer) return;
+        Quaternion turn = Quaternion.Euler(0f, rotate * rotateSpeed * Time.deltaTime, 0f);
+        rb.MoveRotation(rb.rotation * turn);
 
-        float v = Input.GetAxis("Vertical");
-
-        Vector3 movement = transform.forward * v * moveSpeed;
+        Vector3 movement = transform.forward * move * moveSpeed;
         rb.linearVelocity = new Vector3(movement.x, rb.linearVelocity.y, movement.z);
     }
-    
 }
