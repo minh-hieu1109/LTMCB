@@ -28,9 +28,8 @@ public class MenuGame : MonoBehaviour
 
     public void OpenFriendPanel()
     {
-        FindPlayerManager.instance.ShowFriendListFromCache();
         friendPanel.SetActive(true);
-
+        FindPlayerManager.instance.ShowFriendListFromCache();
     }
 
 

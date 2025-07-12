@@ -187,7 +187,13 @@ public class FindPlayerManager : MonoBehaviour
 
                     text.text = player.nickname;
                     button.onClick.RemoveAllListeners();
-                    button.onClick.AddListener(() => StartCoroutine(SendFriendRequest(player.id)));
+                    button.onClick.AddListener(() =>
+                    {
+                        button.interactable = false;                      // Vô hiệu hóa nút
+                        button.GetComponentInChildren<TMP_Text>().text = "Sent"; // Đổi nội dung
+                        StartCoroutine(SendFriendRequest(player.id));
+                    });
+
                 }
                 else
                 {
@@ -199,6 +205,67 @@ public class FindPlayerManager : MonoBehaviour
         {
             Debug.LogError("Lỗi tìm người chơi: " + www.downloadHandler.text);
         }
+    }
+    public IEnumerator DeleteFriend(int friendId, GameObject friendItem)
+    {
+        Debug.Log($"Attempting to delete friend ID: {friendId}");
+
+        // Kiểm tra cơ bản
+        if (friendId <= 0 || friendItem == null)
+        {
+            Debug.LogError("Invalid parameters");
+            yield break;
+        }
+
+        if (string.IsNullOrEmpty(jwtToken))
+            jwtToken = PlayerPrefs.GetString("access_token");
+
+        // Thử exactly như code gốc nhưng với POST
+        string url = "http://127.0.0.1:8000/remove-friend/";
+
+        WWWForm form = new WWWForm();
+        form.AddField("player_id", friendId);  // Đổi từ friend_id thành player_id
+
+        UnityWebRequest www = UnityWebRequest.Post(url, form);
+        www.SetRequestHeader("Authorization", "Bearer " + jwtToken);
+
+        yield return www.SendWebRequest();
+
+        Debug.Log($"Response Code: {www.responseCode}");
+        Debug.Log($"Response: {www.downloadHandler.text}");
+
+        if (www.result == UnityWebRequest.Result.Success)
+        {
+            Debug.Log("✅ Server responded SUCCESS");
+
+            // Kiểm tra response content để đảm bảo thực sự thành công
+            string responseText = www.downloadHandler.text;
+            if (responseText.Contains("error") || responseText.Contains("required"))
+            {
+                Debug.LogError($"❌ Server returned error: {responseText}");
+                www.Dispose();
+                yield break;
+            }
+
+            // Xóa khỏi UI
+            if (friendItems != null)
+                friendItems.Remove(friendItem);
+            Destroy(friendItem);
+
+            Debug.Log("✅ Removed from UI");
+
+            // Reload lại danh sách để đảm bảo sync với server
+            Debug.Log("🔄 Reloading friend list...");
+            yield return StartCoroutine(GetFriendList());
+        }
+        else
+        {
+            Debug.LogError($"❌ Request failed: {www.result}");
+            Debug.LogError($"❌ Error: {www.error}");
+            Debug.LogError($"❌ Response: {www.downloadHandler?.text}");
+        }
+
+        www.Dispose();
     }
 
     IEnumerator SendFriendRequest(int playerId)
