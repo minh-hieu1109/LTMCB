@@ -8,7 +8,7 @@ public class MatchHistoryUploader : NetworkBehaviour
     [Server]
     public void UploadResult(PlayerStats stats, string roomCode)
     {
-        TargetUploadResult(stats.connectionToClient, stats.kills, stats.deaths, 0, roomCode);
+        TargetUploadResult(stats.connectionToClient, stats.kills, stats.deaths, stats.coins, roomCode);
     }
 
     [TargetRpc]
