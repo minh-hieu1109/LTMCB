@@ -1,57 +1,23 @@
 ﻿using UnityEngine;
-using UnityEngine.SceneManagement;
-using Mirror;
 using TMPro;
 
 public class LobbyUI : MonoBehaviour
 {
-    public TMP_InputField portInput;
-    public NetworkManager networkManager;
+    public TMP_InputField roomInput;
 
     public void OnHostClicked()
     {
-        ushort port = 7777;
-        if (ushort.TryParse(portInput.text, out ushort parsedPort))
-            port = parsedPort;
-
-        var telepathy = NetworkManager.singleton.transport as TelepathyTransport;
-        if (telepathy != null)
-        {
-            telepathy.port = port;
-        }
-        else
-        {
-            Debug.LogError("Transport hiện tại không phải TelepathyTransport");
-            return;
-        }
-
-        networkManager.StartHost();
-        SceneManager.LoadScene("RoomScene");
+        MatchManager.instance.CreateRoom();
     }
 
     public void OnJoinClicked()
     {
-        ushort port = 7777;
-        if (ushort.TryParse(portInput.text, out ushort parsedPort))
-            port = parsedPort;
-
-        var telepathy = NetworkManager.singleton.transport as TelepathyTransport;
-        if (telepathy != null)
-        {
-            telepathy.port = port;
-        }
-        else
-        {
-            Debug.LogError("Transport hiện tại không phải TelepathyTransport");
-            return;
-        }
-
-        networkManager.networkAddress = "localhost";
-        networkManager.StartClient();
-        SceneManager.LoadScene("RoomScene");
+        string roomCode = roomInput.text.Trim();
+        MatchManager.instance.JoinRoom(roomCode);
     }
+
     public void CloseLobbyScene()
     {
-        SceneManager.UnloadSceneAsync("LobbyScene");
+        UnityEngine.SceneManagement.SceneManager.UnloadSceneAsync("LobbyScene");
     }
 }
