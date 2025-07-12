@@ -37,6 +37,8 @@ def send_verification_email(user_email, token):
 # router = DefaultRouter()
 # router.register('matches', MatchViewSet)
 
+router = DefaultRouter()
+
 urlpatterns = [
     path('admin/', admin.site.urls),
     path("player/register/", CreatePlayerUserView.as_view(), name="register"),
@@ -57,5 +59,8 @@ urlpatterns = [
     path('matches/update-status/', UpdateMatchStatusView.as_view(), name='update_match_status'),
     path('me/', PlayerProfileView.as_view(), name='get_profile'),
     path('matches/save_history/', SaveMatchHistoryView.as_view(), name='save_match_history'),
-    # path('api/', include(router.urls)),
+    
+    path('api/', include(router.urls)),
+    path("friends/", GetFriendsView.as_view(), name="get-friends"),
+    path("api/me/", GetMyInfoView.as_view()),
 ]

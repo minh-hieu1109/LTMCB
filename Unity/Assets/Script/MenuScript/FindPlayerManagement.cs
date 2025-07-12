@@ -4,6 +4,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
 using UnityEngine.Networking;
+using Newtonsoft.Json;
 
 public class FindPlayerManager : MonoBehaviour
 {
@@ -16,6 +17,46 @@ public class FindPlayerManager : MonoBehaviour
     public GameObject playerRequest;
     public GameObject playerAdd;
     public GameObject friendForm;
+    public GameObject playerChatFriend;
+    public Transform listFriendContainer; // Là ListFriend (Panel)
+    public GameObject friendItemPrefab;   // Prefab chứa Text để hiện tên bạn
+    public string apiUrl = "http://localhost:8000/friends/"; // Sửa nếu cần
+    public string jwtToken; // Token JWT lấy từ khi login
+    private bool hasLoadedFriends = false;
+    private List<GameObject> friendItems = new List<GameObject>();
+
+    IEnumerator GetFriendList()
+    {
+        UnityWebRequest request = UnityWebRequest.Get(apiUrl);
+        request.SetRequestHeader("Authorization", "Bearer " + jwtToken);
+        yield return request.SendWebRequest();
+
+        if (request.result == UnityWebRequest.Result.Success)
+        {
+            string json = request.downloadHandler.text;
+            List<PlayerData> friends = JsonConvert.DeserializeObject<List<PlayerData>>(json);
+
+            foreach (var friend in friends)
+            {
+                GameObject item = Instantiate(friendItemPrefab, listFriendContainer);
+                item.GetComponent<FriendList>().Setup(friend);
+                friendItems.Add(item); // Lưu vào danh sách
+            }
+
+        }
+        else
+        {
+            Debug.LogError("Lỗi lấy danh sách bạn bè: " + request.error);
+        }
+    }
+    public void ShowFriendListFromCache()
+    {
+        foreach (var item in friendItems)
+        {
+            if (item != null)
+                item.SetActive(true);
+        }
+    }
 
     [System.Serializable]
     public class PlayerData
@@ -47,9 +88,52 @@ public class FindPlayerManager : MonoBehaviour
 
     private void Start()
     {
-        StartCoroutine(GetFriendRequestCount());
+        jwtToken = PlayerPrefs.GetString("access_token");
+        if (!string.IsNullOrEmpty(jwtToken))
+        {
+            if (!hasLoadedFriends)
+            {
+                StartCoroutine(LoadFriendsOnce());
+            }
+
+            StartCoroutine(GetFriendRequestCount());
+        }
+        else
+        {
+            Debug.LogError("JWT token rỗng. Không thể lấy danh sách bạn bè.");
+        }
+    }
+    IEnumerator LoadFriendsOnce()
+    {
+        yield return StartCoroutine(GetFriendList());
+        hasLoadedFriends = true;
     }
 
+    public void AddFriendToList(string friendName)
+    {
+        GameObject newFriend = Instantiate(friendItemPrefab, listFriendContainer);
+        TMP_Text nameText = newFriend.GetComponentInChildren<TMP_Text>();
+        if (nameText != null)
+        {
+            nameText.text = friendName;
+        }
+    }
+    public void LoadFriendsWhenOpen()
+    {
+        if (string.IsNullOrEmpty(jwtToken))
+            jwtToken = PlayerPrefs.GetString("access_token");
+
+        StartCoroutine(GetFriendList());
+    }
+
+    public void OnOpenChatFriend()
+    {
+        playerChatFriend.SetActive(true);
+    }
+    public void OnCloseChatFriend()
+    {
+        playerChatFriend.SetActive(false);
+    }
     public void OnOpenAddFriend()
     {
         playerAdd.SetActive(true);

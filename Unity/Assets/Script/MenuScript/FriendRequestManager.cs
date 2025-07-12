@@ -9,6 +9,8 @@ public class FriendRequestManager : MonoBehaviour
     [Header("UI")]
     public GameObject[] playerEntries; // Các entry UI
     public GameObject friendRequestPanel;
+    public FindPlayerManager findPlayerManager;
+
 
     private const string BASE_URL = "http://127.0.0.1:8000";
     private const string TOKEN_KEY = "access_token";
@@ -109,6 +111,16 @@ public class FriendRequestManager : MonoBehaviour
         if (www.result == UnityWebRequest.Result.Success)
         {
             Debug.Log($"Successfully {action}ed request {requestId}");
+
+            if (action == "accept" && entry != null && findPlayerManager != null)
+            {
+                TMP_Text nameText = entry.transform.Find("PlayerName")?.GetComponent<TMP_Text>();
+                if (nameText != null)
+                {
+                    findPlayerManager.AddFriendToList(nameText.text);
+                }
+            }
+
             if (entry != null)
                 entry.SetActive(false);
         }
@@ -117,6 +129,7 @@ public class FriendRequestManager : MonoBehaviour
             Debug.LogError($"Failed to {action} friend request: {www.error}");
         }
     }
+
 
     void AddAuthHeader(UnityWebRequest www)
     {

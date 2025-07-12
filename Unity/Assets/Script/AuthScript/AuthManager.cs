@@ -284,6 +284,24 @@ public class AuthManager : MonoBehaviour
                     {
                         PlayerPrefs.SetString("access_token", token.access);
                         PlayerPrefs.SetString("refresh_token", token.refresh);
+                        PlayerPrefs.Save();
+                        Debug.Log("Đăng nhập thành công, token: " + token.access);
+                        // Gọi API để lấy thông tin người dùng (nickname)
+                        UnityWebRequest profileRequest = UnityWebRequest.Get("http://127.0.0.1:8000/api/me/");
+                        profileRequest.SetRequestHeader("Authorization", "Bearer " + token.access);
+                        yield return profileRequest.SendWebRequest();
+
+                        if (profileRequest.result == UnityWebRequest.Result.Success)
+                        {
+                            string profileJson = profileRequest.downloadHandler.text;
+                            var profileData = JsonUtility.FromJson<PlayerProfile>(profileJson);
+                            PlayerPrefs.SetString("player_name", profileData.nickname); // Lưu tên người chơi để hiển thị
+                        }
+                        else
+                        {
+                            Debug.LogWarning("Không thể lấy thông tin người chơi");
+                        }
+
                         if (loginMessage != null) loginMessage.text = "OK Đăng nhập thành công!";
                         // Tắt tất cả giao diện trước khi chuyển Scene
 
@@ -304,6 +322,11 @@ public class AuthManager : MonoBehaviour
                 }
             }
         }
+    }
+    [System.Serializable]
+    public class PlayerProfile
+    {
+        public string nickname;
     }
 
     private string ParseErrorMessage(string json)

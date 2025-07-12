@@ -12,9 +12,14 @@ public class ChatUI : MonoBehaviour
     public TMP_InputField messageInputField;  // Ô nhập tin nhắn
     public Button sendButton;             // Nút gửi
     public TMP_Text chatWindow;               // Khu vực hiển thị tin nhắn
-
+    public GameObject buttonClose;
     private ClientWebSocket webSocket;
 
+    public void OnCloseChat()
+    {
+        buttonClose.SetActive(false);
+        Debug.Log("Chat closed.");
+    }
     async void Start()
     {
         webSocket = new ClientWebSocket();

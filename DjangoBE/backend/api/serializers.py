@@ -46,9 +46,11 @@ class RespondFriendRequestSerializer(serializers.Serializer):
     action = serializers.ChoiceField(choices=['accept', 'reject'])
 
 class FriendRequestSerializer(serializers.ModelSerializer):
+    fromPlayerName = serializers.CharField(source='from_player.nickname', read_only=True)
+
     class Meta:
         model = FriendRequest
-        fields = ['id', 'from_player', 'to_player', 'created_at']
+        fields = ['id', 'from_player', 'to_player', 'created_at', 'fromPlayerName']
 
 class FriendRequestCountSerializer(serializers.Serializer):
     request_count = serializers.IntegerField()
