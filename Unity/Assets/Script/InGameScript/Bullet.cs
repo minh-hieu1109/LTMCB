@@ -11,6 +11,12 @@ public class Bullet : NetworkBehaviour
     [Header("VFX")]
     public GameObject hitVFX;
 
+    private GameObject attacker;
+
+    public void SetAttacker(GameObject attackerObj)
+    {
+        attacker = attackerObj;
+    }
     void Start()
     {
         Rigidbody rb = GetComponent<Rigidbody>();
@@ -34,7 +40,7 @@ public class Bullet : NetworkBehaviour
         Health targetHealth = collision.gameObject.GetComponent<Health>();
         if (targetHealth != null && !targetHealth.IsInvincible())
         {
-            targetHealth.TakeDamage(damage);
+            targetHealth.TakeDamage(damage, attacker);
         }
 
         NetworkServer.Destroy(gameObject);

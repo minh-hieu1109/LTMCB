@@ -54,3 +54,8 @@ class FriendRequestSerializer(serializers.ModelSerializer):
 
 class FriendRequestCountSerializer(serializers.Serializer):
     request_count = serializers.IntegerField()
+
+class MatchSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Match
+        fields = '__all__'

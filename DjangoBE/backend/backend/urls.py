@@ -19,10 +19,11 @@ from django.urls import path, include
 from api.views import *
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 from django.conf import settings
+from rest_framework.routers import DefaultRouter
 from api.views import (
     CreatePlayerUserView, SearchFriendView, SearchPlayerView, AddFriendView,
     RemoveFriendView, RespondFriendRequestView, GetFriendRequestsView,
-    GetFriendRequestCount, VerifyEmailView, send_test_email, CustomTokenObtainPairView
+    GetFriendRequestCount, VerifyEmailView, send_test_email, CustomTokenObtainPairView,MatchViewSet
 )
 
 def send_verification_email(user_email, token):
@@ -32,6 +33,9 @@ def send_verification_email(user_email, token):
     recipient_list = [user_email]
 
     send_mail(subject, message, from_email, recipient_list)  # Gửi email
+
+router = DefaultRouter()
+router.register('matches', MatchViewSet)
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -48,5 +52,5 @@ urlpatterns = [
     path('get-friend-request-count/', GetFriendRequestCount.as_view(), name='get_friend_request_count'),
     path('verify-email/', VerifyEmailView.as_view(), name='verify-email'),
     path('send_test_email/', send_test_email),
-    
+    path('api/', include(router.urls)),
 ]
