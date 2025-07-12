@@ -20,6 +20,13 @@ public class PlayerShooting : NetworkBehaviour
     void CmdShoot()
     {
         GameObject bullet = Instantiate(bulletPrefab, firePoint.position, firePoint.rotation);
+
+        Bullet bulletScript = bullet.GetComponent<Bullet>();
+        if (bulletScript != null)
+        {
+            bulletScript.SetAttacker(gameObject);
+        }
+
         NetworkServer.Spawn(bullet);
     }
 }

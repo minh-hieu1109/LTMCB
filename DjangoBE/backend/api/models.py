@@ -61,14 +61,21 @@ class GameStats(models.Model):
         return self.kills / self.deaths if self.deaths > 0 else self.kills
     
 class Match(models.Model):
-    room_code = models.CharField(max_length=8, unique=True)  # Mã phòng game
-    max_players = models.IntegerField()  # Số người chơi tối đa trong phòng
-    is_active = models.BooleanField(default=True)  # Trạng thái phòng game (hoạt động hay không)
-    current_players = models.ManyToManyField(Player)  # Liên kết với người chơi trong phòng
-    created_at = models.DateTimeField(auto_now_add=True)  # Thời gian tạo phòng game
+    room_code = models.CharField(max_length=8, unique=True)
+    secret = models.CharField(max_length=32, default=" ")
+    max_players = models.IntegerField()
+    STATUS_CHOICES = [
+        ('waiting', 'Waiting'),
+        ('playing', 'Playing'),
+        ('finished', 'Finished'),
+    ]
+    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='waiting')  # Thêm
+    current_players = models.ManyToManyField(Player)
+    created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return f"Room {self.room_code} - {self.current_players.count()}/{self.max_players} players"
+        return f"Room {self.room_code} ({self.status})"
+
 
 class MatchHistory(models.Model):
     player = models.ForeignKey(Player, on_delete=models.CASCADE)  # Liên kết với người chơi
@@ -82,7 +89,6 @@ class MatchHistory(models.Model):
         return f"{self.player.nickname} - {self.match.room_code} - Kills: {self.kills}, Deaths: {self.deaths}"
 
     def get_kd_ratio(self):
-        # Tính tỷ lệ kills/deaths
         return self.kills / self.deaths if self.deaths > 0 else self.kills
     
 

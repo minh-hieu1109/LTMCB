@@ -5,8 +5,8 @@ public class GameChatUI : MonoBehaviour
 {
     public static GameChatUI Instance;
 
-    [SerializeField] private GameObject chatPanel;   // Cả Panel chứa Scroll View, InputField, Button
-    [SerializeField] private TMP_Text chatText;      // Text trong Content của Scroll View
+    [SerializeField] private GameObject chatPanel;   
+    [SerializeField] private TMP_Text chatText;      
     [SerializeField] private TMP_InputField chatInput;
 
     private bool chatVisible = false;
@@ -27,13 +27,11 @@ public class GameChatUI : MonoBehaviour
         if (PlayerChat.LocalPlayerInstance == null)
             return;
 
-        // Toggle chat panel
         if (!chatInput.isFocused && Input.GetKeyDown(KeyCode.T))
         {
             ToggleChat();
         }
 
-        // Send message when pressing Enter
         if (chatVisible && (Input.GetKeyDown(KeyCode.Return) || Input.GetKeyDown(KeyCode.KeypadEnter)))
         {
             SendMessageFromInput();

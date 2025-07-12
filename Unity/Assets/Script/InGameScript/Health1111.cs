@@ -21,7 +21,7 @@ public class Health : NetworkBehaviour
 
     #region Damage / Heal
     [Server]
-    public void TakeDamage(int damage)
+    public void TakeDamage(int damage, GameObject attacker)
     {
         if (isInvincible) return;
 
@@ -30,6 +30,21 @@ public class Health : NetworkBehaviour
         {
             RpcPlayDeathVFX(transform.position);
 
+            PlayerStats myStats = GetComponent<PlayerStats>();
+            if (myStats != null)
+            {
+                myStats.AddDeath();
+            }
+
+            if (attacker != null)
+            {
+                PlayerStats attackerStats = attacker.GetComponent<PlayerStats>();
+                if (attackerStats != null)
+                {
+                    attackerStats.AddKill();
+                }
+            }
+            GameManager.Instance.CheckWinCondition();
             RpcNotifyDeath();
         }
     }
@@ -56,7 +71,13 @@ public class Health : NetworkBehaviour
         if (move != null)
             move.enabled = false;
     }
-
+    [Server]
+    public void Heal(int amount)
+    {
+        health += amount;
+        if (health > 100)
+            health = 100;
+    }
     void OnHealthChanged(int oldHealth, int newHealth)
     {
         if (isLocalPlayer && healthText != null)
