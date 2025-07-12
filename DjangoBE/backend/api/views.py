@@ -280,3 +280,26 @@ class GetFriendRequestCount(APIView):
         # Đếm số yêu cầu kết bạn chưa được chấp nhận
         friend_requests_count = FriendRequest.objects.filter(to_player=me,accepted__isnull=True).count()
         return Response({'request_count': friend_requests_count},status=status.HTTP_200_OK)
+class GetFriendsView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        me = Player.objects.get(user=request.user)
+        friendships = Friendship.objects.filter(Q(from_player=me) | Q(to_player=me))
+        
+        # Lấy danh sách bạn bè thực tế (người còn lại trong mối quan hệ)
+        friends = []
+        for f in friendships:
+            if f.from_player == me:
+                friends.append(f.to_player)
+            else:
+                friends.append(f.from_player)
+
+        serializer = PlayerSearchSerializer(friends, many=True)
+        return Response(serializer.data)
+class GetMyInfoView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        me = get_object_or_404(Player, user=request.user)
+        return Response({"nickname": me.nickname})

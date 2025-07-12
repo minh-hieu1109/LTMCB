@@ -23,7 +23,7 @@ from rest_framework.routers import DefaultRouter
 from api.views import (
     CreatePlayerUserView, SearchFriendView, SearchPlayerView, AddFriendView,
     RemoveFriendView, RespondFriendRequestView, GetFriendRequestsView,
-    GetFriendRequestCount, VerifyEmailView, send_test_email, CustomTokenObtainPairView,MatchViewSet
+    GetFriendRequestCount, VerifyEmailView, send_test_email, CustomTokenObtainPairView
 )
 
 def send_verification_email(user_email, token):
@@ -35,7 +35,6 @@ def send_verification_email(user_email, token):
     send_mail(subject, message, from_email, recipient_list)  # Gửi email
 
 router = DefaultRouter()
-router.register('matches', MatchViewSet)
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -53,4 +52,6 @@ urlpatterns = [
     path('verify-email/', VerifyEmailView.as_view(), name='verify-email'),
     path('send_test_email/', send_test_email),
     path('api/', include(router.urls)),
+    path("friends/", GetFriendsView.as_view(), name="get-friends"),
+    path("api/me/", GetMyInfoView.as_view()),
 ]
