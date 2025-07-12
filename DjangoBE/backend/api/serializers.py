@@ -56,4 +56,19 @@ class FriendRequestCountSerializer(serializers.Serializer):
 class MatchSerializer(serializers.ModelSerializer):
     class Meta:
         model = Match
-        fields = '__all__'
+        fields = ['room_code', 'status']
+
+class UpdateMatchStatusSerializer(serializers.Serializer):
+    room_code = serializers.CharField()
+    status = serializers.ChoiceField(choices=['waiting', 'playing', 'finished'])
+
+class PlayerProfileSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Player
+        fields = ['id', 'nickname', 'score', 'coin']
+
+class MatchHistoryInputSerializer(serializers.Serializer):
+    room_code = serializers.CharField()
+    kills = serializers.IntegerField()
+    deaths = serializers.IntegerField()
+    money_collected = serializers.IntegerField()

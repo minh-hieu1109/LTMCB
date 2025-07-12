@@ -16,7 +16,11 @@ from django.http import HttpResponse
 from rest_framework import serializers
 from rest_framework import status
 from django.shortcuts import get_object_or_404
-
+import secrets
+from rest_framework import status as http_status
+from rest_framework.generics import RetrieveAPIView
+def generate_unique_code():
+    return secrets.token_hex(4).upper()
 # TEST GỬI EMAIL
 def send_test_email(request):
     try:
@@ -280,3 +284,112 @@ class GetFriendRequestCount(APIView):
         # Đếm số yêu cầu kết bạn chưa được chấp nhận
         friend_requests_count = FriendRequest.objects.filter(to_player=me,accepted__isnull=True).count()
         return Response({'request_count': friend_requests_count},status=status.HTTP_200_OK)
+    
+class CreateMatchView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        player = request.user.player
+
+        # Sinh room code unique
+        while True:
+            room_code = secrets.token_hex(4).upper()
+            if not Match.objects.filter(room_code=room_code).exists():
+                break
+
+        # Tạo Match mới
+        match = Match.objects.create(
+            room_code=room_code,
+            secret=secrets.token_hex(16),
+            max_players=4,
+            status='waiting'
+        )
+        match.current_players.add(player)
+
+        serializer = MatchSerializer(match)
+        return Response(serializer.data)
+
+class JoinMatchView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        player = request.user.player
+        room_code = request.data.get('room_code')
+
+        if not room_code:
+            return Response({"error": "room_code is required."}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            match = Match.objects.get(room_code=room_code)
+        except Match.DoesNotExist:
+            return Response({"error": "Room not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        if match.status != 'waiting':
+            return Response({"error": "Match already started or finished."}, status=status.HTTP_400_BAD_REQUEST)
+
+        if match.current_players.count() >= match.max_players:
+            return Response({"error": "Room full."}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Thêm người chơi vào phòng
+        match.current_players.add(player)
+
+        serializer = MatchSerializer(match)
+        return Response(serializer.data)
+
+class UpdateMatchStatusView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        serializer = UpdateMatchStatusSerializer(data=request.data)
+        if serializer.is_valid():
+            room_code = serializer.validated_data['room_code']
+            new_status = serializer.validated_data['status']
+
+            try:
+                match = Match.objects.get(room_code=room_code)
+            except Match.DoesNotExist:
+                return Response({"error": "Room not found."}, status=http_status.HTTP_404_NOT_FOUND)
+
+            match.status = new_status
+            match.save()
+
+            return Response({"message": "Status updated successfully."})
+        else:
+            return Response(serializer.errors, status=http_status.HTTP_400_BAD_REQUEST)
+        
+class PlayerProfileView(RetrieveAPIView):
+    serializer_class = PlayerProfileSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_object(self):
+        return self.request.user.player
+    
+class SaveMatchHistoryView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        serializer = MatchHistoryInputSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=400)
+
+        data = serializer.validated_data
+        player = request.user.player
+        room_code = data['room_code']
+
+        try:
+            match = Match.objects.get(room_code=room_code)
+        except Match.DoesNotExist:
+            return Response({"error": "Không tìm thấy phòng"}, status=404)
+
+        if MatchHistory.objects.filter(player=player, match=match).exists():
+            return Response({"message": "Đã lưu trước đó"}, status=200)
+
+        MatchHistory.objects.create(
+            player=player,
+            match=match,
+            kills=data['kills'],
+            deaths=data['deaths'],
+            money_collected=data['money_collected']
+        )
+
+        return Response({"message": "Lưu thành công"}, status=201)
