@@ -34,6 +34,9 @@ def send_verification_email(user_email, token):
 
     send_mail(subject, message, from_email, recipient_list)  # Gửi email
 
+# router = DefaultRouter()
+# router.register('matches', MatchViewSet)
+
 router = DefaultRouter()
 
 urlpatterns = [
@@ -51,6 +54,12 @@ urlpatterns = [
     path('get-friend-request-count/', GetFriendRequestCount.as_view(), name='get_friend_request_count'),
     path('verify-email/', VerifyEmailView.as_view(), name='verify-email'),
     path('send_test_email/', send_test_email),
+    path('matches/create/', CreateMatchView.as_view(), name='create_match'),
+    path('matches/join/', JoinMatchView.as_view(), name='join_match'),
+    path('matches/update-status/', UpdateMatchStatusView.as_view(), name='update_match_status'),
+    path('me/', PlayerProfileView.as_view(), name='get_profile'),
+    path('matches/save_history/', SaveMatchHistoryView.as_view(), name='save_match_history'),
+    
     path('api/', include(router.urls)),
     path("friends/", GetFriendsView.as_view(), name="get-friends"),
     path("api/me/", GetMyInfoView.as_view()),

@@ -266,6 +266,7 @@ GameObject:
   - component: {fileID: 13092486}
   - component: {fileID: 13092485}
   - component: {fileID: 13092487}
+  - component: {fileID: 13092488}
   m_Layer: 0
   m_Name: GameManager
   m_TagString: Untagged
@@ -288,7 +289,7 @@ MonoBehaviour:
   syncDirection: 0
   syncMode: 0
   syncInterval: 0
-  winScore: 3
+  winScore: 1
 --- !u!4 &13092486
 Transform:
   m_ObjectHideFlags: 0
@@ -321,6 +322,21 @@ MonoBehaviour:
   serverOnly: 0
   visibility: 0
   hasSpawned: 0
+--- !u!114 &13092488
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 13092484}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d45c0ef2f32714c428ecbea24be1d6ad, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  syncDirection: 0
+  syncMode: 0
+  syncInterval: 0
 --- !u!1 &112566549
 GameObject:
   m_ObjectHideFlags: 0
@@ -1019,7 +1035,7 @@ MonoBehaviour:
   m_TargetGraphic: {fileID: 1284707664}
   m_HandleRect: {fileID: 1284707663}
   m_Direction: 2
-  m_Value: 1
+  m_Value: 0
   m_Size: 1
   m_NumberOfSteps: 0
   m_OnValueChanged:
