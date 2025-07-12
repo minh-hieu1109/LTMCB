@@ -392,8 +392,11 @@ class SaveMatchHistoryView(APIView):
             deaths=data['deaths'],
             money_collected=data['money_collected']
         )
+        player.coin += data['money_collected']
+        player.save()
 
         return Response({"message": "Lưu thành công"}, status=201)
+    
 class GetFriendsView(APIView):
     permission_classes = [IsAuthenticated]
 

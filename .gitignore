@@ -1,3 +1,10 @@
 .env
+HEAD
 # Unity generated files (Example: Font Fallback)
 Unity/Assets/TextMesh Pro/Resources/Fonts & Materials/LiberationSans SDF - Fallback.asset
+
+DjangoBE/backend/api/__pycache__/__init__.cpython-311.pyc
+*.pyc
+DjangoBE/backend/backend/settings.py
+DjangoBE/backend/backend/settings.py
+ 628d0fa530e68ced77f4f270675a7e587a448bcf

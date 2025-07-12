@@ -8,7 +8,8 @@ public class PlayerStats : NetworkBehaviour
 
     [SyncVar]
     public int deaths = 0;
-
+    [SyncVar(hook = nameof(OnCoinsChanged))]
+    public int coins = 0;
     public void AddKill()
     {
         kills++;
@@ -18,18 +19,28 @@ public class PlayerStats : NetworkBehaviour
     {
         deaths++;
     }
+    [Server]
+    public void AddCoin()
+    {
+        coins++;
+    }
+    void OnCoinsChanged(int oldCoins, int newCoins)
+    {
+        if (isLocalPlayer && CoinUIManager.Instance != null)
+        {
+            CoinUIManager.Instance.UpdateCoins(newCoins);
+        }
+    }
 
     public override void OnStartServer()
     {
         base.OnStartServer();
-        // ??ng ký player vào LeaderboardManager
         LeaderboardManager.Instance.RegisterPlayer(this);
     }
 
     public override void OnStopServer()
     {
         base.OnStopServer();
-        // Hu? ??ng ký khi player r?i tr?n
         LeaderboardManager.Instance.UnregisterPlayer(this);
     }
 }

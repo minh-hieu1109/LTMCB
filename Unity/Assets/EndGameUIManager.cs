@@ -23,6 +23,7 @@ public class EndGameUIManager : MonoBehaviour
         winText.SetActive(true);
         loseText.SetActive(false);
         DisablePlayerControls();
+        ReturnToMenuButton.Instance.StartAutoReturn(5f); 
     }
 
     public void ShowLose()
@@ -31,7 +32,9 @@ public class EndGameUIManager : MonoBehaviour
         winText.SetActive(false);
         loseText.SetActive(true);
         DisablePlayerControls();
+        ReturnToMenuButton.Instance.StartAutoReturn(5f);
     }
+
     void DisablePlayerControls()
     {
         if (NetworkClient.localPlayer != null)
@@ -49,5 +52,4 @@ public class EndGameUIManager : MonoBehaviour
             if (respawnManager != null) respawnManager.enabled = false;
         }
     }
-
 }
