@@ -121,6 +121,7 @@ class VerifyEmailView(APIView):
                 last_name=user_data['last_name'],
                 is_active=True
             )
+            Player.objects.create(user=user, nickname=user.username)
             cache.delete(f"pending_user_{username}")
             cache.delete(f"email_verification_{username}")
             print(f"[DEBUG] User {username} created and verified")

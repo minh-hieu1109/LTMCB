@@ -15,6 +15,7 @@ public class FindPlayerManager : MonoBehaviour
     public GameObject[] playerEntries;
     public GameObject playerRequest;
     public GameObject playerAdd;
+    public GameObject friendForm;
 
     [System.Serializable]
     public class PlayerData
@@ -58,7 +59,11 @@ public class FindPlayerManager : MonoBehaviour
     {
         playerAdd.SetActive(false);
     }
-
+    public void OnCloseFriendForm()
+    {
+        friendForm.SetActive(false);
+        Debug.Log("Friend form closed.");
+    }
     public void OnOpenFriendRequest()
     {
         playerRequest.SetActive(true);
@@ -144,6 +149,10 @@ public class FindPlayerManager : MonoBehaviour
         if (!string.IsNullOrEmpty(token))
         {
             www.SetRequestHeader("Authorization", "Bearer " + token);
+        }
+        else
+        {
+            Debug.LogError("TOKEN RỖNG!! Không thể gửi request lấy số lượng lời mời.");
         }
 
         yield return www.SendWebRequest();

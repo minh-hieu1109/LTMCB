@@ -50,4 +50,8 @@ public class LobbyUI : MonoBehaviour
         networkManager.StartClient();
         SceneManager.LoadScene("RoomScene");
     }
+    public void CloseLobbyScene()
+    {
+        SceneManager.UnloadSceneAsync("LobbyScene");
+    }
 }
