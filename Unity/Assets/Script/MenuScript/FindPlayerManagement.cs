@@ -24,6 +24,7 @@ public class FindPlayerManager : MonoBehaviour
     public string jwtToken; // Token JWT lấy từ khi login
     private bool hasLoadedFriends = false;
     private List<GameObject> friendItems = new List<GameObject>();
+    private List<int> sentRequestIds = new List<int>();
 
     IEnumerator GetFriendList()
     {
@@ -89,6 +90,7 @@ public class FindPlayerManager : MonoBehaviour
     private void Start()
     {
         jwtToken = PlayerPrefs.GetString("access_token");
+        LoadSentRequestIds();
         if (!string.IsNullOrEmpty(jwtToken))
         {
             if (!hasLoadedFriends)
@@ -186,14 +188,42 @@ public class FindPlayerManager : MonoBehaviour
                     Button button = entry.GetComponentInChildren<Button>();
 
                     text.text = player.nickname;
-                    button.onClick.RemoveAllListeners();
-                    button.onClick.AddListener(() =>
-                    {
-                        button.interactable = false;                      // Vô hiệu hóa nút
-                        button.GetComponentInChildren<TMP_Text>().text = "Sent"; // Đổi nội dung
-                        StartCoroutine(SendFriendRequest(player.id));
-                    });
 
+                    // 🔧 RESET TRẠNG THÁI BUTTON
+                    // Kiểm tra xem đã gửi lời mời chưa
+                    if (sentRequestIds.Contains(player.id))
+                    {
+                        // Đã gửi lời mời rồi
+                        button.interactable = false;
+                        button.GetComponentInChildren<TMP_Text>().text = "Sent";
+                    }
+                    else
+                    {
+                        // Chưa gửi lời mời
+                        button.interactable = true;
+                        button.GetComponentInChildren<TMP_Text>().text = "Add";
+                    }
+
+                    button.onClick.RemoveAllListeners();
+
+                    // Chỉ add listener nếu chưa gửi lời mời
+                    if (!sentRequestIds.Contains(player.id))
+                    {
+                        int capturedId = player.id;
+                        Button capturedButton = button;
+
+                        capturedButton.onClick.AddListener(() =>
+                        {
+                            capturedButton.interactable = false;
+                            capturedButton.GetComponentInChildren<TMP_Text>().text = "Sent";
+
+                            // Lưu ID đã gửi lời mời
+                            sentRequestIds.Add(capturedId);
+                            SaveSentRequestIds();
+
+                            StartCoroutine(SendFriendRequest(capturedId));
+                        });
+                    }
                 }
                 else
                 {
@@ -206,6 +236,7 @@ public class FindPlayerManager : MonoBehaviour
             Debug.LogError("Lỗi tìm người chơi: " + www.downloadHandler.text);
         }
     }
+
     public IEnumerator DeleteFriend(int friendId, GameObject friendItem)
     {
         Debug.Log($"Attempting to delete friend ID: {friendId}");
@@ -318,5 +349,19 @@ public class FindPlayerManager : MonoBehaviour
         {
             Debug.LogError("Lỗi khi lấy số lượng lời mời: " + www.downloadHandler.text);
         }
+    }
+    // Lưu danh sách ID đã gửi lời mời
+    private void SaveSentRequestIds()
+    {
+        string json = JsonConvert.SerializeObject(sentRequestIds);
+        PlayerPrefs.SetString("sent_request_ids", json);
+        PlayerPrefs.Save();
+    }
+
+    // Load danh sách ID đã gửi lời mời
+    private void LoadSentRequestIds()
+    {
+        string json = PlayerPrefs.GetString("sent_request_ids", "[]");
+        sentRequestIds = JsonConvert.DeserializeObject<List<int>>(json);
     }
 }

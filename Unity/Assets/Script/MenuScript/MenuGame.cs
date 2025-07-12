@@ -1,6 +1,8 @@
 ﻿using UnityEngine;
 using UnityEngine.SceneManagement;
 using System.Collections;
+using UnityEngine.UI;
+
 
 
 public class MenuGame : MonoBehaviour
@@ -18,6 +20,37 @@ public class MenuGame : MonoBehaviour
 
     public GameObject profilePanel;
     public GameObject friendPanel;
+    public GameObject logoutConfirmPanel;
+    public Button btnConfirmLogout;
+    public Button btnCancelLogout;
+
+    public void OnLogoutButtonPressed()
+    {
+        logoutConfirmPanel.SetActive(true);
+
+        btnConfirmLogout.onClick.RemoveAllListeners();
+        btnCancelLogout.onClick.RemoveAllListeners();
+
+        btnConfirmLogout.onClick.AddListener(() =>
+        {
+            logoutConfirmPanel.SetActive(false);
+            PerformLogout();
+        });
+
+        btnCancelLogout.onClick.AddListener(() =>
+        {
+            logoutConfirmPanel.SetActive(false);
+        });
+    }
+
+    void PerformLogout()
+    {
+        // Xóa token
+        PlayerPrefs.DeleteKey("access_token");
+
+        // Load scene đăng nhập (đặt đúng tên scene bạn đã thêm trong Build Settings)
+        SceneManager.LoadScene("djangologin");
+    }
     public void OpenProfilePanel()
     {
         profilePanel.SetActive(true);
