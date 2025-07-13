@@ -3,7 +3,7 @@ using Mirror;
 
 public class BoxPickup : NetworkBehaviour
 {
-    public BoxType boxType; 
+    public BoxType boxType;
     public int healAmount = 20;
 
     private void OnTriggerEnter(Collider other)
@@ -19,20 +19,24 @@ public class BoxPickup : NetworkBehaviour
 
             switch (boxType)
             {
-                //case BoxType.Heal:
-                //    if (health != null)
-                //    {
-                //        health.Heal(healAmount);
-                //        TargetShowPickup(identity.connectionToClient, "Bạn đã nhặt hộp hồi máu!");
-                //    }
-                //    break;
-
                 case BoxType.FlameThrower:
                     if (movement != null)
                     {
-                        movement.EnableFlameThrowerAbility();
-                        TargetShowPickup(identity.connectionToClient, "Bạn đã nhặt vũ khí phun lửa! Ấn E để phun.");
+                        movement.EnableFlameThrowerAbility(3f);
+                        TargetShowPickup(identity.connectionToClient, "Bạn đã nhặt vũ khí phun lửa! Ấn E để phun trong 10 giây.");
                     }
+                    break;
+
+                case BoxType.HealthAndSpeed:
+                    if (health != null)
+                    {
+                        health.Heal(healAmount);
+                    }
+                    if (movement != null)
+                    {
+                        movement.EnableSpeedBoost(2f, 3f);
+                    }
+                    TargetShowPickup(identity.connectionToClient, "Bạn đã nhặt hộp hồi máu và tăng tốc 10 giây!");
                     break;
             }
 

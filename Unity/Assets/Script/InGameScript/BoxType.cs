@@ -1,5 +1,6 @@
 using UnityEngine;
 public enum BoxType
 {
-    FlameThrower
+    FlameThrower,
+    HealthAndSpeed
 }

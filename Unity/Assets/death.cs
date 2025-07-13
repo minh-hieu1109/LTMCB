@@ -45,6 +45,22 @@ public class death : NetworkBehaviour
         isDead = false;
     }
 
+    void OnGUI()
+    {
+        if (!isLocalPlayer) return;
+
+        if (isDead)
+        {
+            GUIStyle style = new GUIStyle(GUI.skin.label);
+            style.fontSize = 50;
+            style.normal.textColor = Color.white;
+            style.alignment = TextAnchor.MiddleCenter;
+
+            Rect rect = new Rect(Screen.width / 2 - 200, Screen.height / 2 - 25, 400, 50);
+            GUI.Label(rect, "Press P to revive", style);
+        }
+    }
+
     [Command]
     void CmdRequestRespawn()
     {

@@ -3,15 +3,22 @@ using UnityEngine;
 
 public class CoinPickup : NetworkBehaviour
 {
+    public float lifetime = 15f;
     public override void OnStartServer()
     {
         base.OnStartServer();
+        Invoke(nameof(DestroySelf), lifetime);
     }
-
-    [ServerCallback]
-    void OnTriggerEnter(Collider other)
+    [Server]
+    void DestroySelf()
     {
-        var stats = other.GetComponent<PlayerStats>();
+        if (isServer)
+            NetworkServer.Destroy(gameObject);
+    }
+    [ServerCallback]
+    void OnCollisionEnter(Collision collision)
+    {
+        var stats = collision.collider.GetComponent<PlayerStats>();
         if (stats != null)
         {
             stats.AddCoin();

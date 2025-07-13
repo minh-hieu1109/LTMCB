@@ -37,6 +37,12 @@ public class Bullet : NetworkBehaviour
 
         if (!isServer) return;
 
+        BoxHealth boxHealth = collision.gameObject.GetComponent<BoxHealth>();
+        if (boxHealth != null)
+        {
+            boxHealth.TakeDamage(damage);
+        }
+
         Health targetHealth = collision.gameObject.GetComponent<Health>();
         if (targetHealth != null && !targetHealth.IsInvincible())
         {

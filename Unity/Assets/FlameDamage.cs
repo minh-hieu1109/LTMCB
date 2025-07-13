@@ -16,7 +16,11 @@ public class FlameDamage : NetworkBehaviour
     private void OnTriggerStay(Collider other)
     {
         if (!isServer) return;
-
+        BoxHealth boxHealth = other.gameObject.GetComponent<BoxHealth>();
+        if (boxHealth != null)
+        {
+            boxHealth.TakeDamage(damagePerTick);
+        }
         Health targetHealth = other.GetComponentInParent<Health>();
         if (targetHealth != null && Time.time >= nextDamageTime)
         {

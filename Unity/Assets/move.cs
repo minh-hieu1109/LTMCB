@@ -1,5 +1,6 @@
 ﻿using UnityEngine;
 using Mirror;
+using System.Collections;
 
 [RequireComponent(typeof(Rigidbody))]
 public class Movement : NetworkBehaviour
@@ -13,16 +14,23 @@ public class Movement : NetworkBehaviour
     public GameObject[] rightWheels;
     public float wheelRotationSpeed = 200.0f;
 
+    [Header("Flame Thrower")]
+    public GameObject flameThrowerPrefab;
+    public Transform firePoint;
+
     private Rigidbody rb;
 
     private float moveInput;
     private float rotationInput;
+
     [SyncVar]
     private bool canFire = false;
 
-    public GameObject flameThrowerPrefab; 
     private GameObject activeFlame;
-    public Transform firePoint;
+
+    private Coroutine speedBoostCoroutine;
+    private Coroutine flameBuffCoroutine;
+
     void Start()
     {
         rb = GetComponent<Rigidbody>();
@@ -31,14 +39,19 @@ public class Movement : NetworkBehaviour
 
     void Update()
     {
-        if (!isLocalPlayer) return;
+        if (!isLocalPlayer)
+            return;
 
+        HandleInput();
+        RotateWheels(moveInput, rotationInput);
+    }
+
+    void HandleInput()
+    {
         moveInput = Input.GetAxis("Vertical");
         rotationInput = Input.GetAxis("Horizontal");
 
         CmdMove(moveInput, rotationInput);
-
-        RotateWheels(moveInput, rotationInput);
 
         if (canFire && Input.GetKeyDown(KeyCode.E))
         {
@@ -49,63 +62,96 @@ public class Movement : NetworkBehaviour
     [Command]
     void CmdMove(float move, float rotate)
     {
-        MoveTankObj(move);
-        RotateTank(rotate);
+        ApplyMovement(move, rotate);
     }
 
-    void MoveTankObj(float input)
+    void ApplyMovement(float move, float rotate)
     {
-        Vector3 moveDirection = transform.forward * input * moveSpeed * Time.deltaTime;
-        rb.MovePosition(rb.position + moveDirection);
+        Vector3 moveVector = transform.forward * move * moveSpeed * Time.deltaTime;
+        rb.MovePosition(rb.position + moveVector);
+
+        float rotationAngle = rotate * rotationSpeed * Time.deltaTime;
+        Quaternion rotationQuat = Quaternion.Euler(0, rotationAngle, 0);
+        rb.MoveRotation(rb.rotation * rotationQuat);
     }
 
-    void RotateTank(float input)
+    void RotateWheels(float move, float rotate)
     {
-        float rotation = input * rotationSpeed * Time.deltaTime;
-        Quaternion turnRotation = Quaternion.Euler(0.0f, rotation, 0.0f);
-        rb.MoveRotation(rb.rotation * turnRotation);
-    }
-
-    void RotateWheels(float moveInput, float rotationInput)
-    {
-        float wheelRotation = moveInput * wheelRotationSpeed * Time.deltaTime;
+        float baseRot = move * wheelRotationSpeed * Time.deltaTime;
+        float rotAdjust = rotate * wheelRotationSpeed * Time.deltaTime;
 
         foreach (GameObject wheel in leftWheels)
         {
-            wheel.transform.Rotate(wheelRotation - rotationInput * wheelRotationSpeed * Time.deltaTime,0.0f,0.0f);
-            
+            wheel.transform.Rotate(baseRot - rotAdjust, 0, 0);
         }
 
         foreach (GameObject wheel in rightWheels)
         {
-            wheel.transform.Rotate(wheelRotation + rotationInput * wheelRotationSpeed * Time.deltaTime,0.0f,0.0f);
+            wheel.transform.Rotate(baseRot + rotAdjust, 0, 0);
         }
     }
+
     [Server]
-    public void EnableFlameThrowerAbility()
+    public void EnableSpeedBoost(float multiplier, float duration)
+    {
+        if (speedBoostCoroutine != null)
+            return; // Buff đã có, không cộng dồn
+
+        speedBoostCoroutine = StartCoroutine(SpeedBoostRoutine(multiplier, duration));
+    }
+
+    private IEnumerator SpeedBoostRoutine(float multiplier, float duration)
+    {
+        moveSpeed *= multiplier;
+        yield return new WaitForSeconds(duration);
+        moveSpeed /= multiplier;
+        speedBoostCoroutine = null;
+    }
+
+    [Server]
+    public void EnableFlameThrowerAbility(float duration = 10f)
+    {
+        if (flameBuffCoroutine != null)
+            return; // Buff đã có, không cộng dồn
+
+        flameBuffCoroutine = StartCoroutine(FlameThrowerBuffRoutine(duration));
+    }
+
+    private IEnumerator FlameThrowerBuffRoutine(float duration)
     {
         canFire = true;
+        yield return new WaitForSeconds(duration);
+        canFire = false;
+
+        // Nếu đang bật lửa thì tắt luôn
+        if (activeFlame != null)
+        {
+            NetworkServer.Destroy(activeFlame);
+            activeFlame = null;
+        }
+
+        flameBuffCoroutine = null;
     }
+
     [Command]
     void CmdToggleFlame()
     {
         if (activeFlame == null)
         {
-            GameObject flameInstance = Instantiate(flameThrowerPrefab, firePoint.position, firePoint.rotation);
-            NetworkServer.Spawn(flameInstance);
+            GameObject flameObj = Instantiate(flameThrowerPrefab, firePoint.position, firePoint.rotation);
+            NetworkServer.Spawn(flameObj);
 
-            FollowTarget follow = flameInstance.AddComponent<FollowTarget>();
+            FollowTarget follow = flameObj.AddComponent<FollowTarget>();
             follow.target = firePoint;
             follow.offset = Vector3.zero;
 
-            // Tìm FlameDamage trong con
-            FlameDamage flameDamage = flameInstance.GetComponentInChildren<FlameDamage>();
+            FlameDamage flameDamage = flameObj.GetComponentInChildren<FlameDamage>();
             if (flameDamage != null)
             {
                 flameDamage.SetAttacker(gameObject);
             }
 
-            activeFlame = flameInstance;
+            activeFlame = flameObj;
         }
         else
         {
@@ -113,8 +159,4 @@ public class Movement : NetworkBehaviour
             activeFlame = null;
         }
     }
-
-
-
-
 }
