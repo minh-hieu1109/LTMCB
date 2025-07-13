@@ -10,6 +10,9 @@ public class PlayerStats : NetworkBehaviour
     public int deaths = 0;
     [SyncVar(hook = nameof(OnCoinsChanged))]
     public int coins = 0;
+    [SyncVar]
+    public string playerName;
+
     public void AddKill()
     {
         kills++;

@@ -9,28 +9,13 @@ public class CustomRoomPlayer : NetworkRoomPlayer
     private Text playerNameText;
     private Button readyButton;
     private Text readyStateText;
-    private Text roomCodeText;
-
     [SyncVar(hook = nameof(OnNicknameChanged))]
     public string playerNickname;
-
-    [SyncVar(hook = nameof(OnRoomCodeChanged))]
-    public string roomCode;
-
+    private static Font sharedFont;
     public override void OnStartClient()
     {
         base.OnStartClient();
         StartCoroutine(DelayedCreateUI());
-    }
-
-    public override void OnStartServer()
-    {
-        base.OnStartServer();
-        // Set room code trên server khi host tạo
-        //if (isServer && isLocalPlayer)
-        //{
-            roomCode = PlayerPrefs.GetString("room_code", "UNKNOWN");
-        //}
     }
 
     private System.Collections.IEnumerator DelayedCreateUI()
@@ -38,6 +23,7 @@ public class CustomRoomPlayer : NetworkRoomPlayer
         yield return new WaitForEndOfFrame();
         CreateUI();
     }
+
 
     void CreateUI()
     {
@@ -48,42 +34,48 @@ public class CustomRoomPlayer : NetworkRoomPlayer
             canvasGO = new GameObject("LobbyCanvas");
             Canvas canvas = canvasGO.AddComponent<Canvas>();
             canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+
             CanvasScaler scaler = canvasGO.AddComponent<CanvasScaler>();
             scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
             scaler.referenceResolution = new Vector2(1920, 1080);
+
             canvasGO.AddComponent<GraphicRaycaster>();
 
-            // Room Code Text
-            GameObject codeGO = new GameObject("RoomCodeText");
-            codeGO.transform.SetParent(canvasGO.transform);
-            roomCodeText = codeGO.AddComponent<Text>();
-            roomCodeText.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-            roomCodeText.fontSize = 36;
+            // Room Code trên đầu
+            GameObject roomCodeGO = new GameObject("RoomCodeText");
+            roomCodeGO.transform.SetParent(canvasGO.transform);
+            Text roomCodeText = roomCodeGO.AddComponent<Text>();
+            roomCodeText.font = Font.CreateDynamicFontFromOSFont("Arial", 42);
+            roomCodeText.fontSize = 42;
             roomCodeText.color = Color.cyan;
             roomCodeText.alignment = TextAnchor.UpperCenter;
+            roomCodeText.text = "Room Code: " + PlayerPrefs.GetString("room_code", "UNKNOWN");
+
             RectTransform codeRT = roomCodeText.rectTransform;
-            codeRT.sizeDelta = new Vector2(500, 50);
-            codeRT.anchoredPosition = new Vector2(0, 300);
-            codeRT.localScale = Vector3.one;
-        }
-        else
-        {
-            var existingCode = canvasGO.transform.Find("RoomCodeText");
-            if (existingCode != null)
-                roomCodeText = existingCode.GetComponent<Text>();
+            codeRT.anchorMin = new Vector2(0.5f, 1);
+            codeRT.anchorMax = new Vector2(0.5f, 1);
+            codeRT.pivot = new Vector2(0.5f, 1);
+            codeRT.sizeDelta = new Vector2(600, 60);
+            codeRT.anchoredPosition = new Vector2(0, -20);
         }
 
-        // Panel player
+        // Panel
         uiPanel = new GameObject("PlayerPanel_" + index);
         uiPanel.transform.SetParent(canvasGO.transform);
         RectTransform panelRT = uiPanel.AddComponent<RectTransform>();
-        panelRT.sizeDelta = new Vector2(400, 150);
-        float yPos = 200 - index * 160;
+        panelRT.anchorMin = new Vector2(0.5f, 1);
+        panelRT.anchorMax = new Vector2(0.5f, 1);
+        panelRT.pivot = new Vector2(0.5f, 1);
+        panelRT.sizeDelta = new Vector2(500, 200);
+        float spacing = 220;
+        float startY = -100;
+        float yPos = startY - index * spacing;
         panelRT.anchoredPosition = new Vector2(0, yPos);
-        panelRT.localScale = Vector3.one;
 
         Image panelImage = uiPanel.AddComponent<Image>();
-        panelImage.color = new Color(0.2f, 0.2f, 0.2f, 0.8f);
+        panelImage.color = new Color(0.15f, 0.15f, 0.2f, 0.9f);
+        panelImage.sprite = Resources.GetBuiltinResource<Sprite>("UISprite");
+        panelImage.type = Image.Type.Sliced;
 
         // Player Name
         GameObject nameGO = new GameObject("PlayerName");
@@ -92,52 +84,95 @@ public class CustomRoomPlayer : NetworkRoomPlayer
         playerNameText.font = Font.CreateDynamicFontFromOSFont("Arial", 36);
         playerNameText.fontSize = 36;
         playerNameText.color = Color.white;
-        playerNameText.alignment = TextAnchor.UpperCenter;
+        playerNameText.alignment = TextAnchor.UpperLeft;
+
         RectTransform nameRT = playerNameText.rectTransform;
-        nameRT.sizeDelta = new Vector2(380, 40);
-        nameRT.anchoredPosition = new Vector2(0, 50);
-        nameRT.localScale = Vector3.one;
+        nameRT.anchorMin = new Vector2(0, 1);
+        nameRT.anchorMax = new Vector2(0, 1);
+        nameRT.pivot = new Vector2(0, 1);
+        nameRT.sizeDelta = new Vector2(460, 50);
+        nameRT.anchoredPosition = new Vector2(20, -10);
 
         // Ready State
         GameObject stateGO = new GameObject("ReadyState");
         stateGO.transform.SetParent(uiPanel.transform);
         readyStateText = stateGO.AddComponent<Text>();
-        readyStateText.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+        readyStateText.font = Font.CreateDynamicFontFromOSFont("Arial", 28);
         readyStateText.fontSize = 28;
         readyStateText.color = Color.yellow;
-        readyStateText.alignment = TextAnchor.MiddleCenter;
+        readyStateText.alignment = TextAnchor.UpperLeft;
+
         RectTransform stateRT = readyStateText.rectTransform;
-        stateRT.sizeDelta = new Vector2(380, 30);
-        stateRT.anchoredPosition = new Vector2(0, 10);
-        stateRT.localScale = Vector3.one;
+        stateRT.anchorMin = new Vector2(0, 1);
+        stateRT.anchorMax = new Vector2(0, 1);
+        stateRT.pivot = new Vector2(0, 1);
+        stateRT.sizeDelta = new Vector2(460, 40);
+        stateRT.anchoredPosition = new Vector2(20, -60);
 
         // Ready Button
         GameObject buttonGO = new GameObject("ReadyButton");
         buttonGO.transform.SetParent(uiPanel.transform);
         readyButton = buttonGO.AddComponent<Button>();
         Image btnImage = buttonGO.AddComponent<Image>();
-        btnImage.color = Color.green;
+        btnImage.color = new Color(0.2f, 0.7f, 0.2f);
         readyButton.targetGraphic = btnImage;
         RectTransform btnRT = buttonGO.GetComponent<RectTransform>();
-        btnRT.sizeDelta = new Vector2(180, 50);
-        btnRT.anchoredPosition = new Vector2(0, -50);
-        btnRT.localScale = Vector3.one;
+        btnRT.anchorMin = new Vector2(0.5f, 0);
+        btnRT.anchorMax = new Vector2(0.5f, 0);
+        btnRT.pivot = new Vector2(0.5f, 0);
+        btnRT.sizeDelta = new Vector2(200, 60);
+        btnRT.anchoredPosition = new Vector2(0, 10);
 
-        // Button Text
         GameObject btnTextGO = new GameObject("ButtonText");
         btnTextGO.transform.SetParent(buttonGO.transform);
         Text btnText = btnTextGO.AddComponent<Text>();
-        btnText.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+        btnText.font = Font.CreateDynamicFontFromOSFont("Arial", 28);
         btnText.fontSize = 28;
-        btnText.color = Color.black;
+        btnText.color = Color.white;
         btnText.alignment = TextAnchor.MiddleCenter;
         btnText.text = "READY";
         RectTransform btnTextRT = btnText.rectTransform;
-        btnTextRT.sizeDelta = new Vector2(180, 50);
+        btnTextRT.anchorMin = new Vector2(0, 0);
+        btnTextRT.anchorMax = new Vector2(1, 1);
+        btnTextRT.pivot = new Vector2(0.5f, 0.5f);
+        btnTextRT.sizeDelta = Vector2.zero;
         btnTextRT.anchoredPosition = Vector2.zero;
-        btnTextRT.localScale = Vector3.one;
 
+        // Kick Button
+        GameObject kickGO = new GameObject("KickButton");
+        kickGO.transform.SetParent(uiPanel.transform);
+        Button kickButton = kickGO.AddComponent<Button>();
+        Image kickImg = kickGO.AddComponent<Image>();
+        kickImg.color = new Color(0.8f, 0.2f, 0.2f);
+        kickButton.targetGraphic = kickImg;
+        RectTransform kickRT = kickGO.GetComponent<RectTransform>();
+        kickRT.anchorMin = new Vector2(1, 1);
+        kickRT.anchorMax = new Vector2(1, 1);
+        kickRT.pivot = new Vector2(1, 1);
+        kickRT.sizeDelta = new Vector2(40, 40);
+        kickRT.anchoredPosition = new Vector2(-10, -10);
+
+        GameObject kickTextGO = new GameObject("KickText");
+        kickTextGO.transform.SetParent(kickGO.transform);
+        Text kickText = kickTextGO.AddComponent<Text>();
+        kickText.font = Font.CreateDynamicFontFromOSFont("Arial", 24);
+        kickText.fontSize = 24;
+        kickText.color = Color.white;
+        kickText.alignment = TextAnchor.MiddleCenter;
+        kickText.text = "X";
+        RectTransform kickTextRT = kickText.rectTransform;
+        kickTextRT.anchorMin = new Vector2(0, 0);
+        kickTextRT.anchorMax = new Vector2(1, 1);
+        kickTextRT.pivot = new Vector2(0.5f, 0.5f);
+        kickTextRT.sizeDelta = Vector2.zero;
+        kickTextRT.anchoredPosition = Vector2.zero;
+
+        // Sự kiện
         readyButton.onClick.AddListener(OnReadyClicked);
+        //kickButton.onClick.AddListener(OnKickClicked);
+
+        if (!isServer)
+            kickGO.SetActive(false);
 
         UpdateUI();
     }
@@ -147,16 +182,23 @@ public class CustomRoomPlayer : NetworkRoomPlayer
         playerNameText.text = string.IsNullOrEmpty(playerNickname) ? $"Player [{(index + 1)}]" : playerNickname;
         readyStateText.text = readyToBegin ? "READY" : "NOT READY";
 
+        // Cập nhật nút theo trạng thái ready
         Text btnText = readyButton.GetComponentInChildren<Text>();
-        btnText.text = readyToBegin ? "CANCEL" : "READY";
-        readyButton.image.color = readyToBegin ? Color.red : Color.green;
-
-        if (roomCodeText != null)
-            roomCodeText.text = "Room Code: " + (string.IsNullOrEmpty(roomCode) ? "..." : roomCode);
+        if (readyToBegin)
+        {
+            btnText.text = "CANCEL";
+            readyButton.image.color = Color.red;
+        }
+        else
+        {
+            btnText.text = "READY";
+            readyButton.image.color = Color.green;
+        }
     }
 
     public void OnReadyClicked()
     {
+        // Toggle trạng thái Ready/Cancel
         CmdChangeReadyState(!readyToBegin);
     }
 
@@ -168,42 +210,46 @@ public class CustomRoomPlayer : NetworkRoomPlayer
 
     private void Update()
     {
+        // Tắt UI khi vào Scene game thực sự
         if (SceneManager.GetActiveScene().name == "SampleScene")
         {
-            if (uiPanel != null) uiPanel.SetActive(false);
+            if (uiPanel != null)
+            {
+                uiPanel.SetActive(false);
+            }
         }
         else
         {
-            if (uiPanel != null && !uiPanel.activeSelf) uiPanel.SetActive(true);
+            if (uiPanel != null && !uiPanel.activeSelf)
+            {
+                uiPanel.SetActive(true);
+            }
         }
     }
 
     public override void OnStopClient()
     {
         base.OnStopClient();
-        if (uiPanel != null) Destroy(uiPanel);
+        // Xóa UI khi client dừng
+        if (uiPanel != null)
+        {
+            Destroy(uiPanel);
+        }
     }
-
     void OnNicknameChanged(string oldName, string newName)
     {
         UpdateUI();
     }
-
-    void OnRoomCodeChanged(string oldCode, string newCode)
-    {
-        UpdateUI();
-    }
-
     [Command]
     public void CmdSetNickname(string nickname)
     {
         playerNickname = nickname;
     }
-
     public override void OnStartLocalPlayer()
     {
         base.OnStartLocalPlayer();
-        string nickname = PlayerPrefs.GetString("nickname", "Unknown");
-        CmdSetNickname(nickname);
+
+        CmdSetNickname(MatchManager.CurrentNickname);
     }
+
 }
